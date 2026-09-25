@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Private Space on Android 15+: LauncherApps lists its activities only for a holder. -->
+    <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
+    <!-- The long-press menu's Uninstall goes through ACTION_DELETE, which needs this on 26+. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Early reveal: Swell draws its own frame above the system launcher's recents stall. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- The backdrop as a live wallpaper is optional; a phone without live wallpapers still installs. -->
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
+
+    <!--
+        Package visibility. Measured on a Galaxy S22 for an earlier launcher: with nothing declared a launcher sees
+        16 of 24 launchable activities and no error anywhere. This MAIN/LAUNCHER entry is the
+        narrow equivalent of QUERY_ALL_PACKAGES for a launcher and the form that survives Play.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <!--
+        No backup: the seat book is a record of what you open and when. It stays on this phone
+        and is never uploaded, by the launcher or by the platform on its behalf. (Swell also has
+        no INTERNET permission.)
+    -->
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        tools:ignore="UnusedAttribute">
+
+        <!--
+            HOME lifecycle: singleTask + taskAffinity="" + excludeFromRecents makes HOME re-enter
+            the one MainActivity instead of stacking. Portrait-locked, and configChanges keeps a
+            dark/light flip or a keyboard from recreating the page mid-animation.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="uiMode|orientation|screenSize|keyboardHidden|keyboard"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
+            tools:ignore="DiscouragedApi">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            "Add to Home screen". A browser (or any app) only offers it when the DEFAULT LAUNCHER
+            declares this filter; ShortcutManager.isRequestPinShortcutSupported() is exactly this
+            check, so without this activity the option is absent from Chrome, Brave and Firefox
+            alike, which reads as a browser bug rather than a launcher gap.
+
+            Not exported to the world by design: the system alone starts it, with a token-bearing
+            intent that getPinItemRequest() validates. excludeFromRecents + noHistory + a
+            transparent theme keep a momentary, never-drawn activity out of the recents list.
+        -->
+        <activity
+            android:name=".PinShortcutActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/PinShortcutTheme">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Swell's backdrop as the phone's wallpaper (lock screen, app switcher, transitions). -->
+        <service
+            android:name=".wallpaper.SwellWallpaper"
+            android:exported="true"
+            android:label="@string/wallpaper_label"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/swell_wallpaper" />
+        </service>
+
+    </application>
+
+</manifest>

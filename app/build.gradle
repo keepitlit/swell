@@ -1,0 +1,99 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+android {
+    compileSdk 36
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    defaultConfig {
+        applicationId "ca.keepitlit.swell"
+        // 26 is the floor an earlier launcher of mine measured its way to. LauncherApps badged icons and the
+        // profile-aware launch path both want it.
+        minSdkVersion 26
+        targetSdkVersion 36
+        versionCode 1
+        versionName "0.1.0"
+        resourceConfigurations += ["en"]
+    }
+
+    // Conditional release signing: no keystore -> UNSIGNED release, not a
+    // failed build.
+    def ksPath = System.getenv('SWELL_STORE_FILE') ?: project.findProperty('SWELL_STORE_FILE')
+    def hasKeystore = ksPath && file(ksPath).exists()
+    if (hasKeystore) {
+        signingConfigs {
+            release {
+                storeFile file(ksPath)
+                storePassword System.getenv('SWELL_STORE_PASSWORD') ?: project.findProperty('SWELL_STORE_PASSWORD')
+                keyAlias System.getenv('SWELL_KEY_ALIAS') ?: project.findProperty('SWELL_KEY_ALIAS')
+                keyPassword System.getenv('SWELL_KEY_PASSWORD') ?: project.findProperty('SWELL_KEY_PASSWORD')
+            }
+        }
+    } else {
+        logger.lifecycle("swell: no release keystore (SWELL_STORE_FILE unset or missing): release will be UNSIGNED")
+    }
+
+    buildTypes {
+        release {
+            debuggable false
+            minifyEnabled true
+            if (hasKeystore) signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        // Release code, debug key: what goes on the phone until a keystore exists. Installs over
+        // debug without wiping the seat book.
+        benchmarkRelease {
+            initWith release
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    // ⚠️ returnDefaultValues makes un-stubbed android.jar calls return 0/null instead of
+    // throwing. The one thing worth testing here, SeatBook, imports nothing from Android, so it
+    // cannot be neutered by this. Do not test anything that touches the platform through it.
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
+
+    namespace 'ca.keepitlit.swell'
+}
+
+dependencies {
+    implementation libs.kotlin.stdlib
+    implementation libs.core.ktx
+    implementation libs.appcompat
+    implementation libs.lifecycle.runtime.ktx
+    implementation libs.lifecycle.runtime.compose
+
+    implementation platform(libs.compose.bom)
+    implementation libs.activity.compose
+    implementation libs.compose.ui
+    implementation libs.compose.ui.graphics
+    implementation libs.compose.foundation
+    implementation libs.compose.ui.tooling.preview
+    implementation libs.compose.material3
+    debugImplementation libs.compose.ui.tooling
+
+    testImplementation libs.junit
+}

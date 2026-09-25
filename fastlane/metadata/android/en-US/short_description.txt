@@ -1,0 +1,1 @@
+A home screen that arranges itself. No folders, no network.

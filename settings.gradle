@@ -1,0 +1,4 @@
+// Two modules only. There is no :engine here: Swell's whole model is one file of pure Kotlin
+// (seats/SeatBook.kt) with no Android on its classpath, tested straight from :app's JVM suite.
+include ':app'
+rootProject.name = "Swell"

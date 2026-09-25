@@ -1,0 +1,22 @@
+*.iml
+*.jks
+.gradle
+/local.properties
+/.idea/*
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+/app/release
+.externalNativeBuild
+.cxx
+google-services.json
+
+# Module build dirs. The root-anchored /build above does not cover new modules such as
+# :baselineprofile, and its build/ holds device test output and generated APKs.
+build/

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A page of seats: four faint rows and a bright shelf. The launcher icon is the model in miniature. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#3A4250" android:pathData="M30,30 h8 v8 h-8 z M44,30 h8 v8 h-8 z M58,30 h8 v8 h-8 z M72,30 h8 v8 h-8 z" />
+    <path android:fillColor="#4A5566" android:pathData="M30,44 h8 v8 h-8 z M44,44 h8 v8 h-8 z M58,44 h8 v8 h-8 z M72,44 h8 v8 h-8 z" />
+    <path android:fillColor="#6E7C90" android:pathData="M30,58 h8 v8 h-8 z M44,58 h8 v8 h-8 z M58,58 h8 v8 h-8 z M72,58 h8 v8 h-8 z" />
+    <path android:fillColor="#B5E84D" android:pathData="M30,72 h8 v8 h-8 z M44,72 h8 v8 h-8 z M58,72 h8 v8 h-8 z M72,72 h8 v8 h-8 z" />
+</vector>

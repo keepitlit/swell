@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Swell</string>
+    <string name="wallpaper_label">Swell backdrop</string>
+    <string name="wallpaper_description">The launcher\'s own backdrop, following its style and colours.</string>
+    <string name="pin_added">%1$s added</string>
+    <string name="pin_added_unnamed">Shortcut added</string>
+</resources>

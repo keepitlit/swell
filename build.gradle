@@ -1,0 +1,24 @@
+// Toolchain pinned to match Orbit and Hutch exactly (AGP 8.9.1 / Gradle 8.11.1 / Kotlin 2.1.20 /
+// compileSdk 36 / JDK 17), so files copied between the three launchers work unmodified.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath libs.gradle
+        classpath libs.kotlin.gradle.plugin
+        classpath libs.kotlin.compose.compiler.gradle.plugin
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

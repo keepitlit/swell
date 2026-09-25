@@ -1,0 +1,6 @@
+<resources>
+    <!-- Window chrome and launcher icon only. The page's palette is theme/Palette.kt. -->
+    <color name="swell_shell">#FF080A0E</color>
+    <color name="swell_accent">#FFB5E84D</color>
+    <color name="ic_launcher_background">#FF080A0E</color>
+</resources>

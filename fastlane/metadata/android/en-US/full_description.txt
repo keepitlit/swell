@@ -1,0 +1,12 @@
+Swell is an Android home screen you never arrange. A 4×4 page and a four-seat shelf fill themselves in the order you actually open things.
+
+Every launch is a vote. Votes decay slowly, so this week matters more than last month, but never enough to yank an icon overnight. An app climbs one seat at a time and only when it clearly beats the one sitting there, so the page settles into something your thumb can learn.
+
+• No folders, no dragging, nothing to configure
+• The four apps you use most sit on the shelf; the rest earn their place on the page
+• Everything else is one swipe away in the drawer
+• Three styles (Mono, Atelier, Candy), accent colours, a role-by-role colour table, monochrome icons
+• Widgets, pinned shortcuts ("Add to Home screen" from your browser), and a live wallpaper that follows your theme
+• Work and private profiles
+
+Swell has no INTERNET permission. Your launch history never leaves the phone.
