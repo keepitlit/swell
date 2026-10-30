@@ -32,11 +32,6 @@ class Look(val appearance: Appearance) {
     val rule = Color(palette.rule)
     val rule2 = Color(palette.rule2)
 
-    /**
-     * Tile corners follow the outline slider: the theme's own radius at the default 7 dp outline,
-     * square at 0, and past a point the corners meet and the tile is a circle.
-     */
-    val tileRadius: Dp = when (theme) { ThemeId.MONO -> 8.dp; ThemeId.ATELIER -> 15.dp; ThemeId.CANDY -> 20.dp } * (appearance.outline / 7f)
     val cellRadius: Dp = when (theme) { ThemeId.MONO -> 8.dp; ThemeId.ATELIER -> 16.dp; ThemeId.CANDY -> 22.dp }
     val drawerRadius: Dp = when (theme) { ThemeId.MONO -> 12.dp; ThemeId.ATELIER -> 28.dp; ThemeId.CANDY -> 38.dp }
     val buttonRadius: Dp = when (theme) { ThemeId.MONO -> 4.dp; ThemeId.ATELIER -> 999.dp; ThemeId.CANDY -> 14.dp }
@@ -48,15 +43,7 @@ class Look(val appearance: Appearance) {
     val monoFont: FontFamily = FontFamily.Monospace
 
     val iconsMono: Boolean = appearance.iconsMono
-    val showLabels: Boolean = appearance.showLabels
-    val showShelf: Boolean = appearance.showShelf
-    val list: Boolean = appearance.list
-    val stepScroll: Boolean = appearance.stepScroll
     val iconSize: Dp = appearance.iconSize.dp
-    val outline: Dp = appearance.outline.dp
-
-    /** The icon inside a tile of [tile] dp: the tile less the outline on each side, never a speck. */
-    fun iconIn(tile: Dp): Dp = (tile - outline * 2).coerceAtLeast(16.dp)
     val clock: ClockPos = appearance.clock
     val wallpaper: Boolean = appearance.wallpaper
 }

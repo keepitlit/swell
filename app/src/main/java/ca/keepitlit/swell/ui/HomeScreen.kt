@@ -8,8 +8,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -34,11 +32,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Row
@@ -47,13 +40,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,20 +60,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import kotlinx.coroutines.launch
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -89,7 +69,6 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -107,10 +86,7 @@ import java.util.Locale
 
 private val EASE = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-/** Touch cushion around a tile, roughly 10-15 px on the 12R: the tap target, not the whole cell. */
-private val TAP_PAD = 5.dp
-
-/** The whole launcher. One screen, three overlays (drawer, app menu, appearance sheet). */
+/** The whole launcher. One screen, three overlays (drawer, app menu, settings). */
 @Composable
 fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSignal: Int = 0) {
     val look = remember(model.appearance) { Look(model.appearance) }
@@ -118,29 +94,27 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
 
     var drawerOpen by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Pair<AppEntry, Offset>?>(null) }
-    var sheetOpen by remember { mutableStateOf(false) }
+    var settingsOpen by remember { mutableStateOf(false) }
 
-    // Page 0 is the widget panel; pages 1.. are the ranked home screens, or the one ranked list.
-    val version = model.version
-    val pageCount = 1 + if (look.list) 1 else model.book.pages
+    // Page 0 is the widget panel; page 1 is the ranked list.
+    val pageCount = 2
     val pager = rememberPagerState(initialPage = 1) { pageCount }
-    val listState = rememberLazyListState()
     val stepState = remember { StepState() }
     LaunchedEffect(homeSignal) {
         // HOME pressed while already home: overlays close, first screen, top of the list.
         drawerOpen = false
         menuFor = null
-        sheetOpen = false
+        settingsOpen = false
         if (homeSignal > 0) {
+            stepState.first = 0
             pager.animateScrollToPage(1)
-            // Only the list on screen: an unattached LazyListState never finishes scrolling.
-            if (look.stepScroll) stepState.first = 0 else listState.animateScrollToItem(0)
         }
     }
     LaunchedEffect(openDrawerSignal) { if (openDrawerSignal > 0) drawerOpen = true }
-    BackHandler(enabled = drawerOpen || menuFor != null) {
+    BackHandler(enabled = drawerOpen || menuFor != null || settingsOpen) {
         when {
             menuFor != null -> menuFor = null
+            settingsOpen -> settingsOpen = false
             else -> drawerOpen = false
         }
     }
@@ -179,7 +153,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                         ) { _, dy -> travel += dy }
                     },
             ) {
-                if (look.clock == ClockPos.TOP) HeroTime(onTap = openClock, onLongPress = { sheetOpen = true }) else Spacer(Modifier.height(12.dp))
+                if (look.clock == ClockPos.TOP) HeroTime(onTap = openClock, onLongPress = { settingsOpen = true }) else Spacer(Modifier.height(12.dp))
                 HorizontalPager(
                     state = pager,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -188,7 +162,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                 ) { page ->
                     if (page == 0) {
                         WidgetPanel(widgets, Modifier.fillMaxSize().padding(horizontal = 12.dp))
-                    } else if (look.list && look.stepScroll) {
+                    } else {
                         SeatSteps(
                             model = model,
                             state = stepState,
@@ -196,33 +170,11 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                             onOpen = open,
                             onHold = { entry, at -> menuFor = entry to at },
                         )
-                    } else if (look.list) {
-                        SeatList(
-                            model = model,
-                            state = listState,
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                            onOpen = open,
-                            onHold = { entry, at -> menuFor = entry to at },
-                        )
-                    } else {
-                        SeatPage(
-                            model = model,
-                            page = page - 1,
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                            onOpen = open,
-                            onHold = { entry, at -> menuFor = entry to at },
-                        )
                     }
                 }
                 Dots(count = pageCount, current = pager.currentPage)
-                if (look.showShelf) Shelf(
-                    model = model,
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    onOpen = open,
-                    onHold = { entry, at -> menuFor = entry to at },
-                )
-                if (look.clock == ClockPos.BOTTOM) HeroTime(onTap = openClock, onLongPress = { sheetOpen = true }, bottom = true)
-                HandleRow(onOpen = { drawerOpen = true }, onHold = { sheetOpen = true })
+                if (look.clock == ClockPos.BOTTOM) HeroTime(onTap = openClock, onLongPress = { settingsOpen = true }, bottom = true)
+                HandleRow(onOpen = { drawerOpen = true }, onHold = { settingsOpen = true })
             }
 
             Drawer(
@@ -231,7 +183,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                 onClose = { drawerOpen = false },
                 onOpen = open,
                 onHold = { entry, at -> menuFor = entry to at },
-                onAppearance = { sheetOpen = true },
+                onSettings = { settingsOpen = true },
             )
 
             menuFor?.let { (entry, at) ->
@@ -256,7 +208,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                 )
             }
 
-            if (sheetOpen) AppearanceSheet(model = model, onDismiss = { sheetOpen = false })
+            SettingsPage(open = settingsOpen, model = model, onClose = { settingsOpen = false })
 
             Toast(model.toast, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
@@ -311,71 +263,18 @@ private fun HeroTime(onTap: () -> Unit, onLongPress: () -> Unit, bottom: Boolean
     }
 }
 
-/**
- * One home screen: [SeatBook.pageSeats] seats in reading order: the hottest seat top-left, then
- * across, then down, the coldest bottom-right (the prototype was floor-up; the phone wants rank one at
- * screen one, row one, column one). Cells are absolutely placed so a seat change animates (the
- * prototype's FLIP, as animated offsets keyed by app).
- */
-@Composable
-private fun SeatPage(
-    model: SwellModel,
-    page: Int,
-    modifier: Modifier,
-    onOpen: (AppEntry, Rect?) -> Unit,
-    onHold: (AppEntry, Offset) -> Unit,
-) {
-    val version = model.version
-    val book = model.book
-    val cols = book.cols
-    val rows = book.rows
-    val keys = remember(version, page, cols, rows) { book.pageSeats(page) }
-
-    BoxWithConstraints(modifier) {
-        val cellW = maxWidth / cols
-        val rowH = maxHeight / rows
-        // The vertical gap between tiles is made equal to the horizontal gap: the row pitch is the
-        // column pitch (cellW), not the stretched rowH. The label lives inside that gap and is not
-        // counted. Row 0 keeps its place (the cells still bottom-align within rowH); the rows below
-        // move up, and the slack collects at the bottom, off the page dots. Never taller than rowH.
-        val pitchV = minOf(cellW, rowH)
-        fun slot(i: Int): Pair<Dp, Dp> {
-            val row = i / cols
-            val col = i % cols
-            return cellW * col to pitchV * row
-        }
-        for (i in keys.indices) {
-            if (keys[i] != null) continue
-            val (x, y) = slot(i)
-            EmptyCell(Modifier.offset(x, y).size(cellW, rowH), cellW, rowH)
-        }
-        for (i in keys.indices) {
-            val k = keys[i] ?: continue
-            val entry = model.appsByKey[k] ?: continue
-            val app = book.app(k) ?: continue
-            val (x, y) = slot(i)
-            key(k) {
-                SeatCell(
-                    model = model, entry = entry, pinned = app.pinned, movedAt = book.lastMoved[k] ?: 0L,
-                    hot = false, x = x, y = y, width = cellW, height = rowH, onOpen = onOpen, onHold = onHold,
-                )
-            }
-        }
-    }
-}
-
 /** Which seat heads the stepped list. Hoisted so HOME can send it back to the top. */
 class StepState {
     var first by mutableIntStateOf(0)
 }
 
-/** The seats home lists: everything after the shelf, in rank order. */
+/** Every seated app, in rank order. */
 @Composable
 private fun listKeys(model: SwellModel): List<String> {
     val version = model.version
     val book = model.book
-    return remember(version, book.dockSeats) {
-        book.seats.drop(book.dockSeats).filterNotNull().filter { model.appsByKey.containsKey(it) }
+    return remember(version) {
+        book.seats.filterNotNull().filter { model.appsByKey.containsKey(it) }
     }
 }
 
@@ -386,40 +285,9 @@ private const val WINDOW_STEP = 4
 private fun linePitch(look: Look): Dp = look.iconSize + 12.dp
 
 /**
- * Home as one column, scrolling smoothly: every seat after the shelf, in rank order, an app to a
- * line, the same order the grid reads in, top to bottom. A rank change slides the line to its
- * new place (the grid's FLIP, as the list's own item animation). The top and bottom edges blur and
- * fade ([edgeBlurFade]); the content padding keeps the first line clear of the band at rest.
- */
-@Composable
-private fun SeatList(
-    model: SwellModel,
-    state: LazyListState,
-    modifier: Modifier,
-    onOpen: (AppEntry, Rect?) -> Unit,
-    onHold: (AppEntry, Offset) -> Unit,
-) {
-    val keys = listKeys(model)
-    LazyColumn(
-        modifier.edgeBlurFade(EDGE_BAND),
-        state = state,
-        contentPadding = PaddingValues(top = EDGE_BAND, bottom = EDGE_BAND),
-    ) {
-        items(keys, key = { it }) { k ->
-            SeatLine(
-                model, k,
-                Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = tween(480, easing = EASE)),
-                onOpen, onHold,
-            )
-        }
-    }
-}
-
-/**
- * Home as one column of stationary lines: a drag or fling never moves the lines, it moves the apps
- * through them, one line per [linePitch] of travel. The same ground as [SeatList] covers, with
- * nothing on screen sliding. One line peeks into each blurred edge band, as the smooth list does
- * at rest.
+ * Home: one column of stationary lines, every seated app in rank order. A drag or fling never
+ * moves the lines; it moves the apps through them, one line per [linePitch] of travel, so nothing
+ * on screen slides. One line peeks into each blurred, fading edge band ([edgeBlurFade]).
  */
 @Composable
 private fun SeatSteps(
@@ -590,101 +458,6 @@ private fun SeatLine(
     }
 }
 
-/** Height of the blurred, fading band at the list's top and bottom edges. */
-private val EDGE_BAND = 40.dp
-
-/**
- * Blurs and fades the content toward its top and bottom edges. The content is recorded once into
- * a layer; the middle is drawn straight from it, and each edge band composites a sharp copy and a
- * band-sized blurred copy through gradient masks. Across a band, measured from the edge as
- * t = 0..1, the total alpha is t, of which the blurred share is 1 - t: sharp alpha t², blurred
- * alpha t(1 - t). Only the two bands are blurred and only they go offscreen; nothing is composed
- * twice.
- */
-private fun Modifier.edgeBlurFade(band: Dp): Modifier = composed {
-    val content = rememberGraphicsLayer()
-    val topBlur = rememberGraphicsLayer()
-    val bottomBlur = rememberGraphicsLayer()
-    val radius = with(LocalDensity.current) { 10.dp.toPx() }
-    LaunchedEffect(radius) {
-        topBlur.renderEffect = BlurEffect(radius, radius, TileMode.Decal)
-        bottomBlur.renderEffect = BlurEffect(radius, radius, TileMode.Decal)
-    }
-    drawWithContent {
-        val b = band.toPx().coerceAtMost(size.height / 2)
-        if (b <= 0f) { drawContent(); return@drawWithContent }
-        val h = size.height
-        val strip = IntSize(size.width.roundToInt(), kotlin.math.ceil(b).toInt())
-        content.record { this@drawWithContent.drawContent() }
-        topBlur.record(strip) { drawLayer(content) }
-        bottomBlur.record(strip) { translate(top = -(h - b)) { drawLayer(content) } }
-
-        clipRect(top = b, bottom = h - b) { drawLayer(content) }
-        // Stops at t = 0, 1/4, 1/2, 3/4, 1 from the edge, laid from y = edge to y = edge ± b.
-        val ts = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
-        fun mask(edge: Float, inward: Float, alpha: (Float) -> Float): Brush {
-            val stops = ts.map { t -> t to Color.Black.copy(alpha = alpha(t)) }
-            return Brush.verticalGradient(*stops.toTypedArray(), startY = edge, endY = edge + inward)
-        }
-        val sharp = { t: Float -> t * t }
-        val blurred = { t: Float -> t * (1f - t) }
-        drawBand(content, 0f, b, mask(0f, b, sharp), mask(0f, b, blurred), topBlur)
-        drawBand(content, h - b, h, mask(h, -b, sharp), mask(h, -b, blurred), bottomBlur)
-    }
-}
-
-/** One edge band, [top]..[bottom]: [sharp] through [sharpMask] plus [blur] (a strip drawn at [top]) through [blurMask]. */
-private fun DrawScope.drawBand(
-    sharp: GraphicsLayer, top: Float, bottom: Float,
-    sharpMask: Brush, blurMask: Brush, blur: GraphicsLayer,
-) {
-    val bounds = androidx.compose.ui.geometry.Rect(0f, top, size.width, bottom)
-    val canvas = drawContext.canvas
-    canvas.saveLayer(bounds, Paint())
-    drawLayer(sharp)
-    drawRect(sharpMask, topLeft = bounds.topLeft, size = bounds.size, blendMode = BlendMode.DstIn)
-    canvas.restore()
-    canvas.saveLayer(bounds, Paint())
-    translate(top = top) { drawLayer(blur) }
-    drawRect(blurMask, topLeft = bounds.topLeft, size = bounds.size, blendMode = BlendMode.DstIn)
-    canvas.restore()
-}
-
-/** The shelf: the hottest [SeatBook.dockSeats], fixed under every screen. */
-@Composable
-private fun Shelf(
-    model: SwellModel,
-    modifier: Modifier,
-    onOpen: (AppEntry, Rect?) -> Unit,
-    onHold: (AppEntry, Offset) -> Unit,
-) {
-    val look = LocalLook.current
-    val version = model.version
-    val book = model.book
-    val cols = book.cols
-    val shelfH = 104.dp
-    BoxWithConstraints(
-        modifier
-            .fillMaxWidth()
-            .height(shelfH)
-            .background(Brush.verticalGradient(0f to look.paper.copy(alpha = 0.04f), 0.7f to Color.Transparent)),
-    ) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(look.rule))
-        val cellW = maxWidth / cols
-        for (seat in 0 until book.dockSeats) {
-            val k = book.seats.getOrNull(seat) ?: continue
-            val entry = model.appsByKey[k] ?: continue
-            val app = book.app(k) ?: continue
-            key(k) {
-                SeatCell(
-                    model = model, entry = entry, pinned = app.pinned, movedAt = book.lastMoved[k] ?: 0L,
-                    hot = true, x = cellW * seat, y = 0.dp, width = cellW, height = shelfH, onOpen = onOpen, onHold = onHold,
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun Dots(count: Int, current: Int) {
     val look = LocalLook.current
@@ -697,130 +470,6 @@ private fun Dots(count: Int, current: Int) {
                     .background(if (on) look.accent else look.rule2, if (i == 0) RoundedCornerShape(2.dp) else CircleShape),
             )
         }
-    }
-}
-
-@Composable
-private fun EmptyCell(modifier: Modifier, width: Dp, height: Dp) {
-    val look = LocalLook.current
-    Column(
-        modifier.padding(TAP_PAD),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Box(
-            Modifier
-                .size(tileFor(width, height, false, look))
-                .border(1.dp, look.paper.copy(alpha = 0.10f), RoundedCornerShape(look.tileRadius)),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(" ", fontSize = 11.sp, lineHeight = 12.sp)
-        Spacer(Modifier.height(2.dp))
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SeatCell(
-    model: SwellModel,
-    entry: AppEntry,
-    pinned: Boolean,
-    movedAt: Long,
-    hot: Boolean,
-    x: Dp, y: Dp,
-    width: Dp, height: Dp,
-    onOpen: (AppEntry, Rect?) -> Unit,
-    onHold: (AppEntry, Offset) -> Unit,
-) {
-    val look = LocalLook.current
-    val density = LocalDensity.current
-    val target = with(density) { IntOffset(x.roundToPx(), y.roundToPx()) }
-    // Animate the FLIP only when this app actually changed rank (a recent launch). A grid reflow or
-    // a page scrolling into view retargets every tile at once; those must snap, or hundreds of tiles
-    // animate together for 480 ms and the whole launcher stalls until it settles.
-    val anim = remember { Animatable(target, IntOffset.VectorConverter) }
-    LaunchedEffect(target) {
-        val recentlyMoved = movedAt > 0 && System.currentTimeMillis() - movedAt < 1600
-        if (recentlyMoved && anim.value != target) anim.animateTo(target, tween(480, easing = EASE))
-        else anim.snapTo(target)
-    }
-    val offset = anim.value
-
-    var justMoved by remember { mutableStateOf(false) }
-    LaunchedEffect(movedAt) {
-        val left = 1600 - (System.currentTimeMillis() - movedAt)
-        if (movedAt > 0 && left > 0) { justMoved = true; delay(left); justMoved = false } else justMoved = false
-    }
-
-    // The tap target's window bounds are read lazily, only when the cell is opened, from the live
-    // layout coordinates. Reading them on every placement meant a boundsInWindow tree-walk per tile
-    // on every pager frame: the swipe stutter that grew with the number of tiles on a page.
-    var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    val tileSize = tileFor(width, height, hot, look)
-
-    Box(
-        Modifier
-            .offset { offset }
-            .size(width, height),
-        contentAlignment = Alignment.BottomCenter,
-    ) {
-      Column(
-        Modifier
-            .clip(RoundedCornerShape(look.cellRadius))
-            .combinedClickable(
-                onClick = {
-                    val b = coords?.takeIf { it.isAttached }?.boundsInWindow()
-                    onOpen(entry, b?.let { Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) })
-                },
-                onLongClick = {
-                    val c = coords?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero
-                    onHold(entry, c)
-                },
-            )
-            .onPlaced { coords = it }
-            // Fixed to the tile plus a small cushion, so the tap target hugs the icon (about
-            // 10-15 px beyond it) and the rest of the cell is dead space between neighbours. The
-            // label no longer stretches the target; it wraps to the tile's width.
-            .width(tileSize + TAP_PAD * 2)
-            .padding(TAP_PAD),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            Modifier
-                .size(tileSize)
-                .clip(RoundedCornerShape(look.tileRadius))
-                .background(look.tile)
-                .then(if (justMoved) Modifier.border(2.dp, look.ember, RoundedCornerShape(look.tileRadius)) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
-            AppIcon(entry, model.repo, look.iconIn(tileSize), look.iconsMono, look.paper)
-            if (pinned) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 2.dp, y = (-2).dp)
-                        .size(10.dp)
-                        .background(look.shell, CircleShape)
-                        .padding(2.dp)
-                        .background(look.accent2, CircleShape),
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            if (look.showLabels) entry.label else " ",
-            fontFamily = look.bodyFont,
-            fontSize = if (tileSize < 60.dp) 9.sp else 11.sp,
-            lineHeight = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = look.paper2,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(if (hot) 6.dp else 2.dp))
-      }
     }
 }
 
@@ -868,18 +517,6 @@ private fun Toast(text: String?, modifier: Modifier) {
             Text(last, fontFamily = look.bodyFont, fontSize = 12.sp, color = look.paper, maxLines = 1)
         }
     }
-}
-
-/**
- * Tile edge for a cell of [width] x [height]: as large as the cell allows, leaving room for the
- * label, capped at the look's icon size so a sparse grid does not turn into a wall of posters.
- * The fixed row's tiles run a touch larger, as in the prototype.
- */
-private fun tileFor(width: Dp, height: Dp, hot: Boolean, look: Look): Dp {
-    val cap = if (hot) look.iconSize + 4.dp else look.iconSize
-    val byWidth = width - 8.dp
-    val byHeight = height - (if (look.showLabels) 30.dp else 10.dp)
-    return minOf(byWidth, byHeight, cap).coerceAtLeast(28.dp)
 }
 
 /** Shared: a small pill button in the look's shape. */

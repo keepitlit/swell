@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * adb-driven hooks, so the phone can be driven without a finger:
      *   am start -n ca.keepitlit.swell/.MainActivity --es launch pkg/.Activity
-     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "home=list,shelf=off,clock=bottom,wallpaper=on,theme=mono"
+     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "clock=bottom,wallpaper=on,theme=mono,icon=60"
      *
      * Debug builds only. MainActivity is exported (it has to be, as HOME), so in a release build
      * any app could otherwise hand the launcher an intent that opens an arbitrary package.
@@ -158,16 +158,10 @@ class MainActivity : AppCompatActivity() {
                     if (parts.size != 2) continue
                     val v = parts[1].trim().lowercase()
                     a = when (parts[0].trim().lowercase()) {
-                        "shelf" -> a.copy(showShelf = v == "on")
-                        "home" -> a.copy(list = v == "list")
-                        "scroll" -> a.copy(stepScroll = v == "step")
                         "clock" -> a.copy(clock = ClockPos.entries.firstOrNull { it.name.lowercase() == v } ?: a.clock)
                         "wallpaper" -> a.copy(wallpaper = v == "on")
                         "theme" -> a.copy(theme = ThemeId.of(v.uppercase()))
-                        "cols" -> a.copy(cols = v.toIntOrNull()?.coerceIn(3, 8) ?: a.cols)
-                        "rows" -> a.copy(rows = v.toIntOrNull()?.coerceIn(2, 10) ?: a.rows)
                         "icon" -> a.copy(iconSize = v.toIntOrNull()?.coerceIn(ca.keepitlit.swell.theme.AppearancePrefs.ICON_MIN, ca.keepitlit.swell.theme.AppearancePrefs.ICON_MAX) ?: a.iconSize)
-                        "outline" -> a.copy(outline = v.toIntOrNull()?.coerceIn(ca.keepitlit.swell.theme.AppearancePrefs.OUTLINE_MIN, ca.keepitlit.swell.theme.AppearancePrefs.OUTLINE_MAX) ?: a.outline)
                         "drawer" -> a.also { if (v == "open") openDrawerSignal++ }
                         else -> a
                     }

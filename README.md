@@ -2,9 +2,8 @@
 
 An Android home screen that arranges itself.
 
-No folders, no dragging. A 4×4 page and a four-seat shelf fill themselves in the order you
-actually open things: restless for the first few days, then still enough to learn with your
-thumb. Pure Kotlin + Compose. **No INTERNET permission**; your launch history never leaves the phone.
+No folders, no dragging. Home is one list, an app to a line, kept in the order you actually
+open things: restless for the first few days, then still enough to learn with your thumb. Pure Kotlin + Compose. **No INTERNET permission**; your launch history never leaves the phone.
 
 ## How it decides
 
@@ -16,21 +15,23 @@ was ported from:
    last month matters less than this week, but not enough to yank an icon overnight.
 2. **An app may only climb one seat per launch** (four while the page is young), and only if it
    beats the occupant by a gap that grows as the page gathers evidence. A pinned seat is never
-   passed. This hysteresis is what keeps the grid stable enough for muscle memory.
-3. **The hottest four sit on the shelf.** The rest that have earned a place fill the page from
-   rank one down. Everything else waits in the drawer.
+   passed. This hysteresis is what keeps the list stable enough for muscle memory.
+3. **Every app has a line, in rank order.** The most-used app heads the list. The drawer holds
+   the same apps alphabetically, with search.
 
 The model is pure Kotlin (`seats/SeatBook.kt`), imports nothing from Android, and has 18 unit
 tests that pin the arithmetic.
 
 ## Using it
 
-- Tap an icon to open it. That is the vote.
-- Long-press an icon: pin the seat (so it cannot be stolen), app info, uninstall.
+- Tap a line to open its app. That is the vote.
+- Drag or fling the list: the lines stay still and the apps step through them, one line at a time.
+- Long-press a line: pin the app's place (so it cannot be taken), app info, uninstall.
 - Pull the handle, swipe up, or long-press the handle / clock for the drawer.
-- **Appearance**: long-press the clock or the handle, or use the button at the bottom of the drawer.
+- **Settings**: long-press the clock or the handle, or use the button at the bottom of the drawer.
   Three styles (Mono is the default; Atelier and Candy), five accent swatches plus a full picker,
-  and a role-by-role colour table for everything else. Monochrome icons follow the theme.
+  a role-by-role colour table, the clock's place, icon size, monochrome icons, and how readily
+  the list reorders.
 - **Widgets**, **"Add to Home screen"** pinned shortcuts from your browser, and Swell's backdrop as
   a **live wallpaper** (so the lock screen and app switcher match).
 - Work and private profiles are listed alongside personal apps.

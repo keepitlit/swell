@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,11 +37,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,10 +61,7 @@ import androidx.compose.ui.unit.sp
 import ca.keepitlit.swell.SwellModel
 import ca.keepitlit.swell.data.AppEntry
 
-/**
- * All apps, hottest first, with search. The rows say where each app sits ("shelf 2", "page 9",
- * "drawer") because the page is the launcher's whole argument and the drawer is where you check it.
- */
+/** All apps, alphabetical, with search. Home holds the ranking; this is the index. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Drawer(
@@ -74,7 +70,7 @@ fun Drawer(
     onClose: () -> Unit,
     onOpen: (AppEntry, Rect?) -> Unit,
     onHold: (AppEntry, Offset) -> Unit,
-    onAppearance: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val look = LocalLook.current
     val version = model.version
@@ -167,9 +163,8 @@ fun Drawer(
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Box(Modifier.size(40.dp).clip(RoundedCornerShape(look.tileRadius * 0.75f)).background(look.tile), contentAlignment = Alignment.Center) {
-                                AppIcon(entry, model.repo, look.iconIn(40.dp).coerceAtMost(34.dp), look.iconsMono, look.paper)
-                            }
+                            // Bare, as on home: no tile behind the icon.
+                            AppIcon(entry, model.repo, 40.dp, look.iconsMono, look.paper)
                             Spacer(Modifier.width(12.dp))
                             Text(entry.label, color = look.paper, fontSize = 15.sp, fontWeight = FontWeight.Medium, fontFamily = look.bodyFont, maxLines = 1, modifier = Modifier.weight(1f))
                         }
@@ -184,7 +179,7 @@ fun Drawer(
                         color = look.paper3, fontSize = 11.sp, fontFamily = look.monoFont, maxLines = 1,
                         modifier = Modifier.weight(1f),
                     )
-                    Pill("Appearance", onClick = onAppearance)
+                    Pill("Settings", onClick = onSettings)
                 }
             }
             }

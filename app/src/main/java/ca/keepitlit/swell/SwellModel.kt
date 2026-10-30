@@ -36,7 +36,8 @@ class SwellModel(private val context: Context) {
     var appearance by mutableStateOf(appearancePrefs.load())
         private set
 
-    val book: SeatBook = store.load().also { it.configure(appearance.cols, appearance.rows, appearance.showShelf) }
+    // Home is one list, so the book's pages are only its capacity: no shelf, plain 4 x 4 chunks.
+    val book: SeatBook = store.load().also { it.configure(4, 4, shelf = false) }
 
     var apps by mutableStateOf<List<AppEntry>>(emptyList())
         private set
@@ -154,7 +155,7 @@ class SwellModel(private val context: Context) {
     fun resetPage() {
         book.reset()
         book.seatAll(apps.map { it.key })
-        book.note("Started over. Open things and the screens will write themselves.")
+        book.note("Started over. The list reorders as you open apps.")
         version++
         save()
     }
@@ -162,11 +163,6 @@ class SwellModel(private val context: Context) {
     fun updateAppearance(change: (Appearance) -> Appearance) {
         appearance = change(appearance)
         appearancePrefs.save(appearance)
-        if (book.cols != appearance.cols || book.rows != appearance.rows || book.shelf != appearance.showShelf) {
-            book.configure(appearance.cols, appearance.rows, appearance.showShelf)
-            version++
-            save()
-        }
     }
 
     fun label(key: String): String =
