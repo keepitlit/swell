@@ -241,8 +241,19 @@ fun AppearanceSheet(model: SwellModel, onDismiss: () -> Unit) {
             Spacer(Modifier.height(22.dp))
 
             // ── Grid ──────────────────────────────────────────────────────────────────
-            SectionLabel("Grid")
+            SectionLabel("Layout")
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Home", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.weight(1f))
+                Pill("list", primary = a.list, onClick = { model.updateAppearance { it.copy(list = true) } }, modifier = Modifier.padding(start = 6.dp))
+                Pill("grid", primary = !a.list, onClick = { model.updateAppearance { it.copy(list = false) } }, modifier = Modifier.padding(start = 6.dp))
+            }
+            if (a.list) Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Scrolling", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.weight(1f))
+                Pill("by line", primary = a.stepScroll, onClick = { model.updateAppearance { it.copy(stepScroll = true) } }, modifier = Modifier.padding(start = 6.dp))
+                Pill("smooth", primary = !a.stepScroll, onClick = { model.updateAppearance { it.copy(stepScroll = false) } }, modifier = Modifier.padding(start = 6.dp))
+            }
+            if (!a.list) {
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Columns", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.weight(1f))
                 for (c in 4..6) Pill("$c", primary = a.cols == c, onClick = { model.updateAppearance { it.copy(cols = c) } }, modifier = Modifier.padding(start = 6.dp))
             }
@@ -255,13 +266,14 @@ fun AppearanceSheet(model: SwellModel, onDismiss: () -> Unit) {
                     "${a.cols * a.rows} per screen, ${model.book.pages} ${if (model.book.pages == 1) "screen" else "screens"} for ${model.apps.size} apps.",
                 color = look.paper3, fontSize = 11.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(top = 6.dp),
             )
+            }
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Fixed row under every screen", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.weight(1f))
                 LookSwitch(a.showShelf) { on -> model.updateAppearance { it.copy(showShelf = on) } }
             }
             Text(
                 if (a.showShelf) "Your ${a.cols} most-used apps stay put while the screens change."
-                else "Off: the most-used apps head the first screen instead. Nothing is hidden.",
+                else "Off: the most-used apps head the ${if (a.list) "list" else "first screen"} instead. Nothing is hidden.",
                 color = look.paper3, fontSize = 11.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(top = 4.dp),
             )
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -326,6 +338,8 @@ fun AppearanceSheet(model: SwellModel, onDismiss: () -> Unit) {
                 "The most a tile will draw. A dense grid stays smaller than this.",
                 color = look.paper3, fontSize = 11.sp, fontFamily = look.bodyFont,
             )
+            // Outline and names-under-icons only shape the grid's tiles; the list draws bare icons, named alongside.
+            if (!a.list) {
             Text("Outline · ${a.outline} dp", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(top = 12.dp))
             Slider(
                 value = a.outline.toFloat(),
@@ -341,6 +355,7 @@ fun AppearanceSheet(model: SwellModel, onDismiss: () -> Unit) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Show names under icons", color = look.paper, fontSize = 14.sp, fontFamily = look.bodyFont, modifier = Modifier.weight(1f))
                 LookSwitch(a.showLabels) { on -> model.updateAppearance { it.copy(showLabels = on) } }
+            }
             }
             Spacer(Modifier.height(22.dp))
 

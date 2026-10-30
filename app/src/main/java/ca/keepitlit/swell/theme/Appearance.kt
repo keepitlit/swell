@@ -19,6 +19,10 @@ data class Appearance(
     val overrides: Map<Role, Int> = emptyMap(),
     val monoIcons: Tri = Tri.AUTO,
     val showLabels: Boolean = true,
+    /** Home is one scrolling list, an app to a line, in rank order. Off: ranked grid screens. */
+    val list: Boolean = true,
+    /** In the list, the lines stay put and a drag moves the apps through them, a line at a time. */
+    val stepScroll: Boolean = true,
     /** Grid density. The shelf is one row of [cols]; each page is [cols] x [rows]. */
     val cols: Int = 4,
     val rows: Int = 4,
@@ -71,6 +75,8 @@ class AppearancePrefs(context: Context) {
             overrides = overrides,
             monoIcons = try { Tri.valueOf(sp.getString(KEY_MONO_ICONS, Tri.AUTO.name) ?: "AUTO") } catch (_: Exception) { Tri.AUTO },
             showLabels = sp.getBoolean(KEY_LABELS, true),
+            list = sp.getBoolean(KEY_LIST, true),
+            stepScroll = sp.getBoolean(KEY_STEP, true),
             cols = sp.getInt(KEY_COLS, 4).coerceIn(3, 8),
             rows = sp.getInt(KEY_ROWS, 4).coerceIn(2, 10),
             iconSize = sp.getInt(KEY_ICON_SIZE, 68).coerceIn(ICON_MIN, ICON_MAX),
@@ -88,6 +94,8 @@ class AppearancePrefs(context: Context) {
             putString(KEY_OVERRIDES, a.overrides.entries.joinToString(";") { "${it.key.name}=${Themes.hex(it.value)}" })
             putString(KEY_MONO_ICONS, a.monoIcons.name)
             putBoolean(KEY_LABELS, a.showLabels)
+            putBoolean(KEY_LIST, a.list)
+            putBoolean(KEY_STEP, a.stepScroll)
             putInt(KEY_COLS, a.cols)
             putInt(KEY_ROWS, a.rows)
             putInt(KEY_ICON_SIZE, a.iconSize)
@@ -111,6 +119,8 @@ class AppearancePrefs(context: Context) {
         private const val KEY_OVERRIDES = "overrides"
         private const val KEY_MONO_ICONS = "monoIcons"
         private const val KEY_LABELS = "labels"
+        private const val KEY_LIST = "list"
+        private const val KEY_STEP = "step"
         private const val KEY_COLS = "cols"
         private const val KEY_ROWS = "rows"
         private const val KEY_SHELF = "shelf"

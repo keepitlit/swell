@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * adb-driven hooks, so the phone can be driven without a finger:
      *   am start -n ca.keepitlit.swell/.MainActivity --es launch pkg/.Activity
-     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "shelf=off,clock=bottom,wallpaper=on,theme=mono"
+     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "home=list,shelf=off,clock=bottom,wallpaper=on,theme=mono"
      *
      * Debug builds only. MainActivity is exported (it has to be, as HOME), so in a release build
      * any app could otherwise hand the launcher an intent that opens an arbitrary package.
@@ -159,6 +159,8 @@ class MainActivity : AppCompatActivity() {
                     val v = parts[1].trim().lowercase()
                     a = when (parts[0].trim().lowercase()) {
                         "shelf" -> a.copy(showShelf = v == "on")
+                        "home" -> a.copy(list = v == "list")
+                        "scroll" -> a.copy(stepScroll = v == "step")
                         "clock" -> a.copy(clock = ClockPos.entries.firstOrNull { it.name.lowercase() == v } ?: a.clock)
                         "wallpaper" -> a.copy(wallpaper = v == "on")
                         "theme" -> a.copy(theme = ThemeId.of(v.uppercase()))

@@ -50,6 +50,8 @@ class Look(val appearance: Appearance) {
     val iconsMono: Boolean = appearance.iconsMono
     val showLabels: Boolean = appearance.showLabels
     val showShelf: Boolean = appearance.showShelf
+    val list: Boolean = appearance.list
+    val stepScroll: Boolean = appearance.stepScroll
     val iconSize: Dp = appearance.iconSize.dp
     val outline: Dp = appearance.outline.dp
 
