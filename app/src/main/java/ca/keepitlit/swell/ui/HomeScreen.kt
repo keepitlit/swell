@@ -66,13 +66,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.keepitlit.swell.SwellModel
@@ -86,6 +90,9 @@ import java.util.Date
 import java.util.Locale
 
 private val EASE = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+/** Side margin of each home page, inside the safe drawing area. */
+private val PAGE_PAD = 12.dp
 
 /** The whole launcher. One screen, three overlays (drawer, app menu, settings). */
 @Composable
@@ -162,12 +169,13 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                     key = { it },
                 ) { page ->
                     if (page == 0) {
-                        WidgetPanel(widgets, Modifier.fillMaxSize().padding(horizontal = 12.dp))
+                        WidgetPanel(widgets, Modifier.fillMaxSize().padding(horizontal = PAGE_PAD))
                     } else {
                         SeatSteps(
                             model = model,
                             state = stepState,
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                            // Clipped to the page, so the dock's bleed never shows on the widgets page.
+                            modifier = Modifier.fillMaxSize().clipToBounds().padding(horizontal = PAGE_PAD),
                             onOpen = open,
                             onHold = { entry, at -> menuFor = entry to at },
                         )
@@ -317,11 +325,14 @@ private fun SeatSteps(
     val decay = rememberSplineBasedDecay<Float>()
     val scope = rememberCoroutineScope()
     val fling = remember { Animatable(0f) }
-    BoxWithConstraints(modifier) {
+    // Where this column sits in the window, for the dock, which is placed against the screen.
+    var placed by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    BoxWithConstraints(modifier.onPlaced { placed = it }) {
         val pitch = linePitch(look)
         // Lines wholly clear of both bands; the list stops when its last app reaches the last of them.
         val clear = ((maxHeight - EDGE_BAND * 2) / pitch).toInt().coerceAtLeast(1)
-        SideEffect { state.dockRoom = clear }
+        val dockRoom = ((maxHeight - DOCK_PAD * 2 + DOCK_GAP) / (dockIcon(look) + DOCK_GAP)).toInt()
+        SideEffect { state.dockRoom = dockRoom }
         val maxFirst = (keys.size - clear).coerceAtLeast(0)
         val pitchPx = with(LocalDensity.current) { pitch.toPx() }
         val height = maxHeight
@@ -397,43 +408,62 @@ private fun SeatSteps(
                 }
             }
         }
-        Dock(model, slots = clear, gutter = gutter, onOpen = onOpen, onHold = onHold)
+        if (gutter > 0.dp) Dock(model, room = dockRoom, column = { placed }, onOpen = onOpen, onHold = onHold)
     }
 }
 
 /** A docked icon's edge: smaller than the list's, never larger. */
-private val DOCK_ICON = 44.dp
+private fun dockIcon(look: Look): Dp = minOf(44.dp, look.iconSize)
+
+private val DOCK_PAD = 8.dp
+private val DOCK_GAP = 12.dp
+/** How far the dock runs past the screen's left edge, taking its left border with it. */
+private val DOCK_BLEED = 24.dp
 
 /**
- * The apps kept in a fixed place: one column centred in the [gutter] left of the list's icons,
- * each icon on one of the [slots] clear lines, filling from the bottom line up. One app or a
- * full column, it sits in a single capsule.
+ * The apps kept in a fixed place: one column against the screen's left edge, centred on the
+ * screen's height and kept inside the list's [column]. Its capsule runs off the edge, so only the
+ * rounded right end shows. Holds up to [room] apps.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Dock(
     model: SwellModel,
-    slots: Int,
-    gutter: Dp,
+    room: Int,
+    column: () -> LayoutCoordinates?,
     onOpen: (AppEntry, Rect?) -> Unit,
     onHold: (AppEntry, Offset) -> Unit,
 ) {
     val look = LocalLook.current
-    val keys = dockKeys(model).take(slots)
-    if (keys.isEmpty() || gutter <= 0.dp) return
-    val pitch = linePitch(look)
-    val icon = minOf(DOCK_ICON, look.iconSize)
-    val pad = 8.dp
-    // Line slot j's icon centre is EDGE_BAND + j * pitch + pitch / 2; the dock takes the last keys.size slots.
-    val top = EDGE_BAND + pitch * (slots - keys.size) + pitch / 2 - icon / 2 - pad
+    val keys = dockKeys(model).take(room)
+    if (keys.isEmpty()) return
+    val icon = dockIcon(look)
+    val density = LocalDensity.current
+    // From the column's left to past the screen's edge: the page margin, the safe-area inset, the bleed.
+    val toEdgePx = with(density) { (PAGE_PAD + DOCK_BLEED).roundToPx() } +
+        WindowInsets.safeDrawing.getLeft(density, LayoutDirection.Ltr)
+    val shape = RoundedCornerShape(topEnd = icon / 2 + DOCK_PAD, bottomEnd = icon / 2 + DOCK_PAD)
     Column(
         Modifier
-            .offset(x = (gutter - icon) / 2 - pad, y = top)
-            .clip(CircleShape)
+            .layout { measurable, constraints ->
+                val p = measurable.measure(constraints)
+                layout(p.width, p.height) {
+                    // Placed here, not in composition, so the column's position is read at layout time.
+                    // Only its height in the window is read: across, it moves with the pager.
+                    val c = column()?.takeIf { it.isAttached }
+                    val y = if (c == null) 0 else {
+                        val top = c.positionInRoot().y
+                        val centre = c.findRootCoordinates().size.height / 2f
+                        (centre - top - p.height / 2f).roundToInt().coerceIn(0, (c.size.height - p.height).coerceAtLeast(0))
+                    }
+                    p.place(-toEdgePx, y)
+                }
+            }
+            .clip(shape)
             .background(look.paper.copy(alpha = 0.10f))
-            .border(1.dp, look.rule2, CircleShape)
-            .padding(pad),
-        verticalArrangement = Arrangement.spacedBy(pitch - icon),
+            .border(1.dp, look.rule2, shape)
+            .padding(start = DOCK_BLEED + 10.dp, end = DOCK_PAD, top = DOCK_PAD, bottom = DOCK_PAD),
+        verticalArrangement = Arrangement.spacedBy(DOCK_GAP),
     ) {
         // First docked sits lowest, nearest the thumb.
         for (k in keys.asReversed()) {

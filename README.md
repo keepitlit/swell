@@ -72,7 +72,7 @@ week or two. Only launches from Swell count.
 | Open an app | Tap its line. That is the vote. |
 | Move through the list | Drag or fling it: the lines stay still and the apps step through them. |
 | Pin, see app info, uninstall | Long-press a line. **Pin in place** keeps the app's line so nothing can pass it. |
-| Keep an app in a fixed place | Long-press it on home or in all apps, then **Add to dock**. The dock sits left of the list, fills from the bottom up, and the app leaves the list until you remove it. |
+| Keep an app in a fixed place | Long-press it on home or in all apps, then **Add to dock**. The dock sits against the left edge, centred on the screen, and the app leaves the list until you remove it. |
 | See all apps | Tap **all apps**, or swipe up anywhere on home. Search, or drag the letters on the right. |
 | Open settings | Long-press the clock or **all apps**, or tap **Settings** at the bottom of all apps. |
 | Open your clock app | Tap the clock. |
