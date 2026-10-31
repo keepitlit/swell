@@ -38,8 +38,12 @@ unit tests.
 
 ## Install
 
-There is no prebuilt APK yet; build one. You need JDK 17 and the Android SDK (the Gradle
-wrapper is included).
+Download `swell-<version>.apk` from [Releases](https://github.com/keepitlit/swell/releases) and
+open it on your phone (Android asks you to allow installs from your browser or file manager the
+first time). Release APKs carry the same signature as the Google Play build, so either can update
+the other without losing your launch history.
+
+Or build it yourself. You need JDK 17 and the Android SDK (the Gradle wrapper is included):
 
 ```
 git clone https://github.com/keepitlit/swell
@@ -100,6 +104,8 @@ Android 8.0 (API 26) or newer. Developed on a OnePlus 12R and a Galaxy S22; othe
 work, but please open an issue with the model and Android version if the home screen misbehaves.
 
 ## Privacy
+
+The full policy is in [PRIVACY.md](PRIVACY.md).
 
 - No `INTERNET` permission. Nothing is sent anywhere.
 - `allowBackup="false"`: the seat book (what you open and when) stays on the phone and is not
