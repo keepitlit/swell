@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -191,6 +192,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                     model = model,
                     entry = entry,
                     anchor = at,
+                    dockRoom = stepState.dockRoom,
                     onOpen = { open(entry, null) },
                     onAppInfo = { menuFor = null; AppLaunch.appInfo(context, entry) },
                     onUninstall = {
@@ -263,19 +265,31 @@ private fun HeroTime(onTap: () -> Unit, onLongPress: () -> Unit, bottom: Boolean
     }
 }
 
-/** Which seat heads the stepped list. Hoisted so HOME can send it back to the top. */
+/**
+ * Which seat heads the stepped list, hoisted so HOME can send it back to the top, and how many
+ * apps the dock has room for, which the app menu needs.
+ */
 class StepState {
     var first by mutableIntStateOf(0)
+    var dockRoom by mutableIntStateOf(0)
 }
 
-/** Every seated app, in rank order. */
+/** Every seated app not in the dock, in rank order. */
 @Composable
 private fun listKeys(model: SwellModel): List<String> {
     val version = model.version
     val book = model.book
     return remember(version) {
-        book.seats.filterNotNull().filter { model.appsByKey.containsKey(it) }
+        book.seats.filterNotNull().filter { model.appsByKey.containsKey(it) && it !in book.dock }
     }
+}
+
+/** The dock's apps that are installed, bottom first. */
+@Composable
+private fun dockKeys(model: SwellModel): List<String> {
+    val version = model.version
+    val book = model.book
+    return remember(version) { book.dock.filter { model.appsByKey.containsKey(it) } }
 }
 
 /** The stepped list composes lines in blocks of this many, so most steps compose nothing. */
@@ -287,7 +301,8 @@ private fun linePitch(look: Look): Dp = look.iconSize + 12.dp
 /**
  * Home: one column of stationary lines, every seated app in rank order. A drag or fling never
  * moves the lines; it moves the apps through them, one line per [linePitch] of travel, so nothing
- * on screen slides. One line peeks into each blurred, fading edge band ([edgeBlurFade]).
+ * on screen slides. One line peeks into each blurred, fading edge band ([edgeBlurFade]). The
+ * [Dock] stands in the empty half left of the icons and does not move.
  */
 @Composable
 private fun SeatSteps(
@@ -302,16 +317,19 @@ private fun SeatSteps(
     val decay = rememberSplineBasedDecay<Float>()
     val scope = rememberCoroutineScope()
     val fling = remember { Animatable(0f) }
-    BoxWithConstraints(modifier.clipToBounds().edgeBlurFade(EDGE_BAND)) {
+    BoxWithConstraints(modifier) {
         val pitch = linePitch(look)
         // Lines wholly clear of both bands; the list stops when its last app reaches the last of them.
         val clear = ((maxHeight - EDGE_BAND * 2) / pitch).toInt().coerceAtLeast(1)
+        SideEffect { state.dockRoom = clear }
         val maxFirst = (keys.size - clear).coerceAtLeast(0)
         val pitchPx = with(LocalDensity.current) { pitch.toPx() }
         val height = maxHeight
         Box(
             Modifier
                 .fillMaxSize()
+                .clipToBounds()
+                .edgeBlurFade(EDGE_BAND)
                 .pointerInput(maxFirst, pitchPx) {
                     var travel = 0f
                     // Spend drag travel a line at a time; false once an end is reached.
@@ -373,6 +391,69 @@ private fun SeatSteps(
                         Modifier.offset { IntOffset(0, (bandPx + (i - state.first.coerceIn(0, maxFirst)) * pitchPx).roundToInt()) },
                         onOpen, onHold,
                     )
+                }
+            }
+        }
+        Dock(model, slots = clear, gutter = maxWidth / 2 - 8.dp - look.iconSize, onOpen = onOpen, onHold = onHold)
+    }
+}
+
+/** A docked icon's edge: smaller than the list's, never larger. */
+private val DOCK_ICON = 44.dp
+
+/**
+ * The apps kept in a fixed place: one column centred in the [gutter] left of the list's icons,
+ * each icon on one of the [slots] clear lines, filling from the bottom line up. One app or a
+ * full column, it sits in a single capsule.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Dock(
+    model: SwellModel,
+    slots: Int,
+    gutter: Dp,
+    onOpen: (AppEntry, Rect?) -> Unit,
+    onHold: (AppEntry, Offset) -> Unit,
+) {
+    val look = LocalLook.current
+    val keys = dockKeys(model).take(slots)
+    if (keys.isEmpty() || gutter <= 0.dp) return
+    val pitch = linePitch(look)
+    val icon = minOf(DOCK_ICON, look.iconSize)
+    val pad = 8.dp
+    // Line slot j's icon centre is EDGE_BAND + j * pitch + pitch / 2; the dock takes the last keys.size slots.
+    val top = EDGE_BAND + pitch * (slots - keys.size) + pitch / 2 - icon / 2 - pad
+    Column(
+        Modifier
+            .offset(x = (gutter - icon) / 2 - pad, y = top)
+            .clip(CircleShape)
+            .background(look.paper.copy(alpha = 0.10f))
+            .border(1.dp, look.rule2, CircleShape)
+            .padding(pad),
+        verticalArrangement = Arrangement.spacedBy(pitch - icon),
+    ) {
+        // First docked sits lowest, nearest the thumb.
+        for (k in keys.asReversed()) {
+            val entry = model.appsByKey[k] ?: continue
+            key(k) {
+                var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                Box(
+                    Modifier
+                        .onPlaced { coords = it }
+                        .size(icon)
+                        .clip(RoundedCornerShape(percent = 30))
+                        .combinedClickable(
+                            onClick = {
+                                val b = coords?.takeIf { it.isAttached }?.boundsInWindow()
+                                onOpen(entry, b?.let { Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) })
+                            },
+                            onLongClick = {
+                                val c = coords?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero
+                                onHold(entry, c)
+                            },
+                        ),
+                ) {
+                    AppIcon(entry, model.repo, icon, look.iconsMono, look.paper)
                 }
             }
         }

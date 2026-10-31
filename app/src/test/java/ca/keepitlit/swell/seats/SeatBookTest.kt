@@ -134,6 +134,19 @@ class SeatBookTest {
     }
 
     @Test
+    fun `a docked app keeps its seat and leaves the dock when uninstalled`() {
+        val b = book()
+        b.launch("a"); b.launch("b")
+        assertTrue(b.toggleDock("b"))
+        assertEquals(1, b.seatOf("b"))
+        assertTrue(b.prune(setOf("a")))
+        assertEquals(emptyList<String>(), b.dock)
+        assertTrue(b.toggleDock("a"))
+        assertFalse(b.toggleDock("a"))
+        assertEquals(emptyList<String>(), b.dock)
+    }
+
+    @Test
     fun `a day decays every score and grows tenure`() {
         val b = book()
         b.launch("a")

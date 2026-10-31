@@ -48,6 +48,8 @@ class SeatStore(private val context: Context) {
             val recent = ArrayList<Int>(recentArr.length())
             for (i in 0 until recentArr.length()) recent.add(recentArr.getInt(i))
             book.restore(o.optInt("day", 0), o.optInt("totalOpens", 0), seats, recent)
+            val dockArr = o.optJSONArray("dock") ?: JSONArray()
+            for (i in 0 until dockArr.length()) book.dock.add(dockArr.getString(i))
             val logArr = o.optJSONArray("log") ?: JSONArray()
             for (i in logArr.length() - 1 downTo 0) {
                 val e = logArr.getJSONObject(i)
@@ -96,6 +98,7 @@ class SeatStore(private val context: Context) {
         for (s in book.seats) seats.put(s ?: JSONObject.NULL)
         o.put("seats", seats)
         o.put("recent", JSONArray(book.recentMoves.toList()))
+        o.put("dock", JSONArray(book.dock))
         val log = JSONArray()
         for (e in book.log) {
             val j = JSONObject().put("d", e.day).put("k", e.kind.name).put("a", e.key)

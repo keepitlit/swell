@@ -89,6 +89,12 @@ class SeatBook {
     /** Wall-clock millis of the last move per key, for the UI's "just moved" ring. */
     val lastMoved = HashMap<String, Long>()
 
+    /**
+     * Apps kept in the dock, first added first (it draws bottom up). A docked app keeps its seat
+     * and its votes; home leaves it out of the list, so undocking puts it back where it earned.
+     */
+    val dock: MutableList<String> = ArrayList()
+
     init { fit() }
 
     // ─── reads ────────────────────────────────────────────────────────────────────────────────
@@ -259,6 +265,13 @@ class SeatBook {
         return a.pinned
     }
 
+    /** Dock or undock. Returns true when the app is now docked. */
+    fun toggleDock(key: String): Boolean {
+        if (dock.remove(key)) return false
+        dock.add(key)
+        return true
+    }
+
     /**
      * Forget apps that are no longer installed. A vanished app's seat is freed and the book
      * closes up, so an uninstall never leaves a hole.
@@ -271,6 +284,7 @@ class SeatBook {
             val k = seats[i]
             if (k != null && k !in liveKeys) { seats[i] = null; changed = true }
         }
+        if (dock.removeAll { it !in liveKeys }) changed = true
         if (changed) fit()
         return changed
     }

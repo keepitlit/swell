@@ -145,6 +145,12 @@ class SwellModel(private val context: Context) {
         save()
     }
 
+    fun toggleDock(key: String) {
+        showToast(if (book.toggleDock(key)) "${label(key)} is in the dock" else "${label(key)} is back in the list")
+        version++
+        save()
+    }
+
     fun setHysteresis(value: Double) {
         book.hysteresis = value
         version++

@@ -44,6 +44,7 @@ fun AppMenu(
     model: SwellModel,
     entry: AppEntry,
     anchor: Offset,
+    dockRoom: Int,
     onOpen: () -> Unit,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
@@ -89,10 +90,18 @@ fun AppMenu(
             }
             Rule()
             Item("Open", onOpen)
-            Item(
+            val docked = entry.key in model.book.dock
+            // A docked app has no place in the list to hold.
+            if (!docked) Item(
                 if (app?.pinned == true) "Unpin" else "Pin in place",
                 { model.togglePin(entry.key); onDismiss() },
             )
+            when {
+                docked -> Item("Remove from dock", { model.toggleDock(entry.key); onDismiss() })
+                // Why the item is missing: every clear line already holds a docked app.
+                model.book.dock.size >= dockRoom -> Item("Dock is full", {}, muted = true)
+                else -> Item("Add to dock", { model.toggleDock(entry.key); onDismiss() })
+            }
             Item("App info", onAppInfo)
             // A pinned shortcut has no package of its own: "Uninstall" here would remove the app
             // that hosts it: remove a web page from home and lose the whole browser.
