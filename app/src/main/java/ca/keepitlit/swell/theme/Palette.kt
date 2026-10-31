@@ -75,21 +75,25 @@ object Themes {
 
     fun defaultAccent(): Int = BASE.accent
 
-    /** The prototype's candy `--device-*` block, with Swell's own navy shell and signal yellow accent. */
+    /**
+     * The prototype's candy `--device-*` block, recoloured: navy where it was purple (the store
+     * feature graphic's three blues for shell, drawer and search; Alex, 2026-10-30: "we can't have
+     * purple"), blue-white ink, signal yellow accent. Accent-derived roles hold what [resolve] draws.
+     */
     val BASE: Palette = Palette.of(
         Role.SHELL to 0xFF202F50.toInt(),
-        Role.PAPER to 0xFFFBF8FF.toInt(),
-        Role.PAPER2 to 0xFFD9D1EC.toInt(),
-        Role.PAPER3 to 0xFFAAA0C3.toInt(),
+        Role.PAPER to 0xFFF8FAFF.toInt(),
+        Role.PAPER2 to 0xFFD1D9EC.toInt(),
+        Role.PAPER3 to 0xFFA0AAC3.toInt(),
         Role.ACCENT to 0xFFF3C969.toInt(),
-        Role.ACCENT2 to 0xFFAA9FFF.toInt(),
-        Role.EMBER to 0xFFF0788E.toInt(),
-        Role.EMBER2 to 0xFFDC637A.toInt(),
-        Role.TILE to 0xFF6557B9.toInt(),
-        Role.DRAWER to 0xFF302647.toInt(),
-        Role.SEARCH to 0xFF251E39.toInt(),
-        Role.RULE to argb(0.18f, 0xFB, 0xF8, 0xFF),
-        Role.RULE2 to argb(0.34f, 0xFB, 0xF8, 0xFF),
+        Role.ACCENT2 to 0xFFF9E3B1.toInt(),
+        Role.EMBER to 0xFFF3C969.toInt(),
+        Role.EMBER2 to 0xFFF6D893.toInt(),
+        Role.TILE to 0xFF686359.toInt(),
+        Role.DRAWER to 0xFF2A3A5E.toInt(),
+        Role.SEARCH to 0xFF121A2C.toInt(),
+        Role.RULE to argb(0.18f, 0xF8, 0xFA, 0xFF),
+        Role.RULE2 to argb(0.34f, 0xF8, 0xFA, 0xFF),
     )
 
     /**
