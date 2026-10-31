@@ -15,7 +15,7 @@ data class Appearance(
     val overrides: Map<Role, Int> = emptyMap(),
     val monoIcons: Boolean = false,
     /** Icon edge in dp on home's lines; a line is this plus 12 dp. */
-    val iconSize: Int = 68,
+    val iconSize: Int = 60,
     val clock: ClockPos = ClockPos.TOP,
     /** The system wallpaper instead of Swell's drawn backdrop; every colour role still applies. */
     val wallpaper: Boolean = false,
@@ -51,7 +51,7 @@ class AppearancePrefs(context: Context) {
             overrides = overrides,
             // Stored as a string since the three-way days (AUTO/ON/OFF); AUTO meant off for this look.
             monoIcons = sp.getString(KEY_MONO_ICONS, null) == "ON",
-            iconSize = sp.getInt(KEY_ICON_SIZE, 68).coerceIn(ICON_MIN, ICON_MAX),
+            iconSize = sp.getInt(KEY_ICON_SIZE, 60).coerceIn(ICON_MIN, ICON_MAX),
             clock = try { ClockPos.valueOf(sp.getString(KEY_CLOCK, ClockPos.TOP.name) ?: "TOP") } catch (_: Exception) { ClockPos.TOP },
             wallpaper = sp.getBoolean(KEY_WALLPAPER, false),
         )
@@ -59,7 +59,7 @@ class AppearancePrefs(context: Context) {
 
     fun save(a: Appearance) {
         sp.edit().apply {
-            remove(KEY_THEME)
+            for (k in LEGACY_KEYS) remove(k)
             if (a.accent == null) remove(KEY_ACCENT) else putInt(KEY_ACCENT, a.accent)
             putString(KEY_OVERRIDES, a.overrides.entries.joinToString(";") { "${it.key.name}=${Themes.hex(it.value)}" })
             putString(KEY_MONO_ICONS, if (a.monoIcons) "ON" else "OFF")
@@ -74,8 +74,8 @@ class AppearancePrefs(context: Context) {
         const val ICON_MIN = 40
         const val ICON_MAX = 96
         private const val KEY_ICON_SIZE = "iconSize"
-        /** Written by builds with a style choice; removed on the next save. */
-        private const val KEY_THEME = "theme"
+        /** Written by builds with a style choice or a grid; removed on the next save. */
+        private val LEGACY_KEYS = listOf("theme", "rows", "cols", "shelf", "list", "labels", "outline")
         private const val KEY_ACCENT = "accent"
         private const val KEY_OVERRIDES = "overrides"
         private const val KEY_MONO_ICONS = "monoIcons"

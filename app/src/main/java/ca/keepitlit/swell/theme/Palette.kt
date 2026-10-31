@@ -75,13 +75,13 @@ object Themes {
 
     fun defaultAccent(): Int = BASE.accent
 
-    /** The prototype's candy `--device-*` block, verbatim. */
+    /** The prototype's candy `--device-*` block, with Swell's own navy shell and signal yellow accent. */
     val BASE: Palette = Palette.of(
-        Role.SHELL to 0xFF3D315C.toInt(),
+        Role.SHELL to 0xFF202F50.toInt(),
         Role.PAPER to 0xFFFBF8FF.toInt(),
         Role.PAPER2 to 0xFFD9D1EC.toInt(),
         Role.PAPER3 to 0xFFAAA0C3.toInt(),
-        Role.ACCENT to 0xFF6D5BD0.toInt(),
+        Role.ACCENT to 0xFFF3C969.toInt(),
         Role.ACCENT2 to 0xFFAA9FFF.toInt(),
         Role.EMBER to 0xFFF0788E.toInt(),
         Role.EMBER2 to 0xFFDC637A.toInt(),

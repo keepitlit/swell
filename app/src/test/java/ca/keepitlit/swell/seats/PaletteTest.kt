@@ -10,9 +10,9 @@ class PaletteTest {
     @Test
     fun `the tile is the accent mixed a third into the shell, as the prototype renders it`() {
         val p = Themes.resolve(null, emptyMap())
-        // color-mix(in srgb, #6d5bd0 34%, #3d315c)
-        assertEquals("#4d3f83", Themes.hex(p.tile).lowercase())
-        assertEquals(0xFF6D5BD0.toInt(), p.accent)
+        // color-mix(in srgb, #f3c969 34%, #202f50)
+        assertEquals("#686359", Themes.hex(p.tile).lowercase())
+        assertEquals(0xFFF3C969.toInt(), p.accent)
     }
 
     @Test
