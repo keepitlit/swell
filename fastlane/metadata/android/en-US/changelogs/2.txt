@@ -1,0 +1,1 @@
+Every app icon now has the same shape and size.
