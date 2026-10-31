@@ -29,6 +29,9 @@ tests that pin the arithmetic.
 - Long-press a line: pin the app's place (so it cannot be taken), app info, uninstall.
 - Pull the handle, swipe up, or long-press the handle / clock for the drawer.
 - **Settings**: long-press the clock or the handle, or use the button at the bottom of the drawer.
+- **Least used** (in settings): every app you can uninstall, least used first, with its opens from
+  Swell. Select one or several and uninstall them; the phone confirms each, and cancelling one stops
+  the rest.
   Three styles (Mono is the default; Atelier and Candy), five accent swatches plus a full picker,
   a role-by-role colour table, the clock's place, icon size, monochrome icons, and how readily
   the list reorders.

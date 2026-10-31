@@ -47,6 +47,8 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
         var ema: Double = 0.0,
         var pinned: Boolean = false,
         var tenure: Int = 0,
+        /** The book [day] of the last launch, or -1 if it predates the record (or never happened). */
+        var lastDay: Int = -1,
     )
 
     /** What just moved. `other` is the app that was passed or evicted, when there was one. */
@@ -262,6 +264,7 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
         val a = appOrNew(key)
         a.opens += 1
         a.ema += 1.0
+        a.lastDay = day
         totalOpens += 1
         for (other in apps.values) if (other.key != key) other.ema *= LAUNCH_DECAY
         return enterOrBubble(key, nowMs)

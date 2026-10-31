@@ -76,7 +76,7 @@ private enum class Open { STYLE, ACCENT, PICKER, COLOURS, BACKDROP, CLOCK, MONO,
  * starts just past it. Choices open as more lines under the one tapped, never as a row of buttons.
  *
  * Only what home's list uses is here: the look (style, accent, colours, backdrop), the clock, the
- * icons, coming home, and the ranking.
+ * icons, coming home, the least used apps, and the ranking.
  *
  * Material's slider is used for its touch and accessibility behaviour, with its colours set
  * explicitly: left to defaults it arrives in Material purple.
@@ -84,6 +84,8 @@ private enum class Open { STYLE, ACCENT, PICKER, COLOURS, BACKDROP, CLOCK, MONO,
 @Composable
 fun SettingsPage(open: Boolean, model: SwellModel, onClose: () -> Unit) {
     val look = LocalLook.current
+    var leastUsedOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { if (!open) leastUsedOpen = false }
     AnimatedVisibility(
         open,
         enter = fadeIn(tween(200)) + slideInVertically(tween(260)) { it / 12 },
@@ -97,13 +99,14 @@ fun SettingsPage(open: Boolean, model: SwellModel, onClose: () -> Unit) {
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
         ) {
             Wall()
-            SettingsColumn(model, onClose)
+            SettingsColumn(model, onClose, onLeastUsed = { leastUsedOpen = true })
+            LeastUsedPage(open = leastUsedOpen, model = model, onClose = { leastUsedOpen = false })
         }
     }
 }
 
 @Composable
-private fun SettingsColumn(model: SwellModel, onClose: () -> Unit) {
+private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: () -> Unit) {
     val look = LocalLook.current
     val a = model.appearance
     val context = LocalContext.current
@@ -268,6 +271,11 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit) {
             )
             // Without "display over other apps" the system launcher holds Swell back about a second.
             if (!canCover) Note("Off: leaving an app shows bare wallpaper for about a second.")
+
+            // ── Apps ──────────────────────────────────────────────────────────────────
+            Heading("Apps")
+            val unopened = remember(model.apps, model.version) { leastUsed(model).count { it.use.opens == 0 } }
+            Line("Least used", if (unopened > 0) "$unopened never opened" else "Review", onClick = onLeastUsed)
 
             // ── Order ─────────────────────────────────────────────────────────────────
             Heading("Order")
