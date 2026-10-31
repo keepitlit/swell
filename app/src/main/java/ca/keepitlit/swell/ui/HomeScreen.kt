@@ -489,15 +489,22 @@ private fun HandleRow(onOpen: () -> Unit, onHold: () -> Unit) {
             .padding(top = 8.dp, bottom = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.width(42.dp).height(5.dp).background(look.paper2, CircleShape))
-        Text(
-            "all apps",
-            fontFamily = look.monoFont,
-            fontSize = 10.sp,
-            letterSpacing = 1.sp,
-            color = look.paper3,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        // One pill with the words inside it: the handle and its name are the same thing.
+        Box(
+            Modifier
+                .clip(CircleShape)
+                .background(look.paper.copy(alpha = 0.10f))
+                .border(1.dp, look.rule2, CircleShape)
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+        ) {
+            Text(
+                "all apps",
+                fontFamily = look.monoFont,
+                fontSize = 12.sp,
+                letterSpacing = 1.sp,
+                color = look.paper2,
+            )
+        }
     }
 }
 

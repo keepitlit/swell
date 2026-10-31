@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -151,7 +152,11 @@ fun Drawer(
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                val listState = rememberLazyListState()
+                LaunchedEffect(open, query) { listState.scrollToItem(0) }
+                val sections = remember(rows) { letterSections(rows) }
+                Row(Modifier.weight(1f)) {
+                LazyColumn(Modifier.weight(1f), state = listState, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     items(rows, key = { it.key }) { entry ->
                         var centre by remember { mutableStateOf(Offset.Zero) }
                         Row(
@@ -170,6 +175,9 @@ fun Drawer(
                         }
                     }
                     if (rows.isEmpty()) item { Text("Nothing matches.", color = look.paper3, fontSize = 13.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(8.dp)) }
+                }
+                // Searching narrows the list to a few rows; the letters would only get in the way.
+                if (query.isBlank() && sections.size > 1) AlphabetRail(sections, listState)
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
