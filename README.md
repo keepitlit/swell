@@ -95,6 +95,7 @@ one and **Remove** deletes the shortcut, not the browser.
   places each app gained (green) or lost (red) over the last few moves.
 - **Start over** forgets every launch and returns the list to alphabetical. **Reset the look**
   restores the accent, colours, backdrop, clock and icons.
+- **Privacy policy** opens [PRIVACY.md](PRIVACY.md) in your browser.
 
 Work and private profiles are listed alongside personal apps.
 

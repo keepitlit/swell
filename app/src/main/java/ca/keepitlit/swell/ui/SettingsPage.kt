@@ -304,6 +304,15 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
                 Option("keep it", selected = false) { opened = null }
             }
 
+            // Google Play requires the policy to be reachable from inside the app.
+            Line("Privacy policy", "Read", onClick = {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (_: Exception) {
+                    model.showToast("No browser to open $PRIVACY_URL")
+                }
+            })
+
             Spacer(Modifier.height(24.dp))
             Text(
                 "Done",
@@ -482,6 +491,8 @@ private fun Shift(entry: Pair<String, String>?, colour: Color, modifier: Modifie
 /** Fixed, not palette roles: gain and loss read as green and red whatever the accent. */
 private val GAIN = Color(0xFF6FD98F)
 private val LOSS = Color(0xFFFF7A7A)
+
+private const val PRIVACY_URL = "https://github.com/keepitlit/swell/blob/main/PRIVACY.md"
 
 @Composable
 private fun sliderColours(look: Look) = SliderDefaults.colors(
