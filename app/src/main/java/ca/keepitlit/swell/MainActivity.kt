@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.view.WindowManager
 import ca.keepitlit.swell.theme.Appearance
 import ca.keepitlit.swell.theme.ClockPos
-import ca.keepitlit.swell.theme.ThemeId
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
@@ -56,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         model = SwellModel(applicationContext)
         widgets = Widgets(this)
         reveal = EarlyReveal(this)
-        // The window background is the one colour the theme owns; the persisted shell colour
+        // The window background is the one colour the look owns; the persisted shell colour
         // (or the wallpaper) is applied before the first frame so a cold start never flashes the XML default.
         applyBackdrop(model.appearance)
         model.start()
@@ -143,7 +142,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * adb-driven hooks, so the phone can be driven without a finger:
      *   am start -n ca.keepitlit.swell/.MainActivity --es launch pkg/.Activity
-     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "clock=bottom,wallpaper=on,theme=mono,icon=60"
+     *   am start -n ca.keepitlit.swell/.MainActivity --es appearance "clock=bottom,wallpaper=on,icon=60"
      *
      * Debug builds only. MainActivity is exported (it has to be, as HOME), so in a release build
      * any app could otherwise hand the launcher an intent that opens an arbitrary package.
@@ -160,7 +159,6 @@ class MainActivity : AppCompatActivity() {
                     a = when (parts[0].trim().lowercase()) {
                         "clock" -> a.copy(clock = ClockPos.entries.firstOrNull { it.name.lowercase() == v } ?: a.clock)
                         "wallpaper" -> a.copy(wallpaper = v == "on")
-                        "theme" -> a.copy(theme = ThemeId.of(v.uppercase()))
                         "icon" -> a.copy(iconSize = v.toIntOrNull()?.coerceIn(ca.keepitlit.swell.theme.AppearancePrefs.ICON_MIN, ca.keepitlit.swell.theme.AppearancePrefs.ICON_MAX) ?: a.iconSize)
                         "drawer" -> a.also { if (v == "open") openDrawerSignal++ }
                         else -> a

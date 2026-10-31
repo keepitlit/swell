@@ -51,8 +51,18 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
         var lastDay: Int = -1,
     )
 
-    /** What just moved. `other` is the app that was passed or evicted, when there was one. */
-    class Event(val day: Int, val kind: Kind, val key: String, val other: String? = null) {
+    /**
+     * What just moved. `other` is the app that was passed or evicted, when there was one; for a
+     * climb, [passed] is every app it went past, nearest last. Events saved before [passed] was
+     * recorded carry `other` alone.
+     */
+    class Event(
+        val day: Int,
+        val kind: Kind,
+        val key: String,
+        val other: String? = null,
+        val passed: List<String> = listOfNotNull(other),
+    ) {
         enum class Kind { EARNED, TOOK_LAST, CLIMBED, NOTE }
         /** For [Kind.NOTE] events, the text itself. */
         var note: String? = null
@@ -191,7 +201,7 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
      * Let the app at [from] climb as far as rule 2 allows. Returns the seat it ended in; holes on
      * the way are closed by [compact] when it returns.
      */
-    private fun climb(from: Int): Int {
+    private fun climb(from: Int, passed: MutableList<String>? = null): Int {
         val key = seats[from] ?: return from
         val me = apps[key] ?: return from
         var idx = from
@@ -205,6 +215,7 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
                 continue
             }
             if (!passes(me, above, idx - 1)) break
+            passed?.add(above.key)
             seats[idx - 1] = key
             seats[idx] = above.key
             idx--
@@ -229,11 +240,12 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
             moved = true
             push(Event(day, Event.Kind.EARNED, key))
         }
-        val to = climb(idx)
+        val passed = ArrayList<String>()
+        val to = climb(idx, passed)
         if (to < idx) {
             moved = true
-            // One entry per launch, naming the app now directly below.
-            push(Event(day, Event.Kind.CLIMBED, key, seats.getOrNull(to + 1)))
+            // One entry per launch, naming the app now directly below and every app passed.
+            push(Event(day, Event.Kind.CLIMBED, key, seats.getOrNull(to + 1), passed))
             compact()
         }
         recentMoves.addLast(if (moved) 1 else 0)
@@ -310,6 +322,20 @@ class SeatBook(cols: Int = 4, rows: Int = 4, shelf: Boolean = true) {
         log.clear()
         lastMoved.clear()
         fit()
+    }
+
+    /**
+     * Net places each app gained (+) or lost (−) over the last [moves] climbs: a climber gains one
+     * per app it passed, and each app passed loses one. Biggest gain first; apps that came out
+     * even are left out.
+     */
+    fun shifts(moves: Int = 6): List<Pair<String, Int>> {
+        val net = LinkedHashMap<String, Int>()
+        for (e in log.asSequence().filter { it.kind == Event.Kind.CLIMBED }.take(moves)) {
+            net[e.key] = (net[e.key] ?: 0) + e.passed.size
+            for (p in e.passed) net[p] = (net[p] ?: 0) - 1
+        }
+        return net.entries.filter { it.value != 0 }.sortedByDescending { it.value }.map { it.key to it.value }
     }
 
     fun note(text: String) {

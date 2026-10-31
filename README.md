@@ -29,12 +29,12 @@ tests that pin the arithmetic.
 - Long-press a line: pin the app's place (so it cannot be taken), app info, uninstall.
 - Pull the handle, swipe up, or long-press the handle / clock for the drawer.
 - **Settings**: long-press the clock or the handle, or use the button at the bottom of the drawer.
+  Five accent swatches plus a full picker, a role-by-role colour table, the clock's place, icon
+  size, monochrome icons, and how readily the list reorders, with each app's recent places gained
+  or lost.
 - **Least used** (in settings): every app you can uninstall, least used first, with its opens from
   Swell. Select one or several and uninstall them; the phone confirms each, and cancelling one stops
   the rest.
-  Three styles (Mono is the default; Atelier and Candy), five accent swatches plus a full picker,
-  a role-by-role colour table, the clock's place, icon size, monochrome icons, and how readily
-  the list reorders.
 - **Widgets**, **"Add to Home screen"** pinned shortcuts from your browser, and Swell's backdrop as
   a **live wallpaper** (so the lock screen and app switcher match).
 - Work and private profiles are listed alongside personal apps.
@@ -82,7 +82,7 @@ SWELL_KEY_PASSWORD
 ## Layout
 
 - `seats/SeatBook.kt`: the model, pure Kotlin, tested in `app/src/test`.
-- `theme/Palette.kt`: the three styles and the accent arithmetic.
+- `theme/Palette.kt`: the palette and the accent arithmetic.
 - `theme/Appearance.kt`: what the user chose; persisted in SharedPreferences.
 - `ui/`: Compose: home, drawer, long-press menu, appearance sheet, colour picker.
 - `data/`, `helper/`: app enumeration across profiles, LauncherApps launch, icon cache.

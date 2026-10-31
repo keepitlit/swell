@@ -52,7 +52,10 @@ class SeatStore(private val context: Context) {
             for (i in logArr.length() - 1 downTo 0) {
                 val e = logArr.getJSONObject(i)
                 val kind = try { SeatBook.Event.Kind.valueOf(e.getString("k")) } catch (_: Exception) { continue }
-                val ev = SeatBook.Event(e.optInt("d", 0), kind, e.optString("a", ""), e.optString("b").ifBlank { null })
+                val other = e.optString("b").ifBlank { null }
+                val passedArr = e.optJSONArray("p")
+                val passed = if (passedArr == null) listOfNotNull(other) else List(passedArr.length()) { passedArr.getString(it) }
+                val ev = SeatBook.Event(e.optInt("d", 0), kind, e.optString("a", ""), other, passed)
                 ev.note = e.optString("n").ifBlank { null }
                 book.log.addFirst(ev)
             }
@@ -97,6 +100,7 @@ class SeatStore(private val context: Context) {
         for (e in book.log) {
             val j = JSONObject().put("d", e.day).put("k", e.kind.name).put("a", e.key)
             e.other?.let { j.put("b", it) }
+            if (e.passed.size > 1) j.put("p", JSONArray(e.passed))
             e.note?.let { j.put("n", it) }
             log.put(j)
         }

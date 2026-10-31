@@ -8,14 +8,12 @@ import androidx.compose.ui.unit.dp
 import ca.keepitlit.swell.theme.Appearance
 import ca.keepitlit.swell.theme.ClockPos
 import ca.keepitlit.swell.theme.Palette
-import ca.keepitlit.swell.theme.ThemeId
 
 /**
- * The resolved appearance, in Compose types: colours, corner radii and type per theme. Built
- * once per [Appearance] and provided through [LocalLook] so nothing below reads preferences.
+ * The resolved appearance, in Compose types: colours, corner radii and type. Built once per
+ * [Appearance] and provided through [LocalLook] so nothing below reads preferences.
  */
 class Look(val appearance: Appearance) {
-    val theme: ThemeId = appearance.theme
     val palette: Palette = appearance.palette
 
     val shell = Color(palette.shell)
@@ -32,17 +30,16 @@ class Look(val appearance: Appearance) {
     val rule = Color(palette.rule)
     val rule2 = Color(palette.rule2)
 
-    val cellRadius: Dp = when (theme) { ThemeId.MONO -> 8.dp; ThemeId.ATELIER -> 16.dp; ThemeId.CANDY -> 22.dp }
-    val drawerRadius: Dp = when (theme) { ThemeId.MONO -> 12.dp; ThemeId.ATELIER -> 28.dp; ThemeId.CANDY -> 38.dp }
-    val buttonRadius: Dp = when (theme) { ThemeId.MONO -> 4.dp; ThemeId.ATELIER -> 999.dp; ThemeId.CANDY -> 14.dp }
-    val fieldRadius: Dp = when (theme) { ThemeId.MONO -> 6.dp; ThemeId.ATELIER -> 14.dp; ThemeId.CANDY -> 18.dp }
+    val cellRadius: Dp = 22.dp
+    val drawerRadius: Dp = 38.dp
+    val buttonRadius: Dp = 14.dp
+    val fieldRadius: Dp = 18.dp
 
-    /** The clock. Mono is all-monospace; atelier's clock is the serif; candy is the system sans. */
-    val clockFont: FontFamily = when (theme) { ThemeId.MONO -> FontFamily.Monospace; ThemeId.ATELIER -> FontFamily.Serif; ThemeId.CANDY -> FontFamily.SansSerif }
-    val bodyFont: FontFamily = when (theme) { ThemeId.MONO -> FontFamily.Monospace; else -> FontFamily.SansSerif }
+    val clockFont: FontFamily = FontFamily.SansSerif
+    val bodyFont: FontFamily = FontFamily.SansSerif
     val monoFont: FontFamily = FontFamily.Monospace
 
-    val iconsMono: Boolean = appearance.iconsMono
+    val iconsMono: Boolean = appearance.monoIcons
     val iconSize: Dp = appearance.iconSize.dp
     val clock: ClockPos = appearance.clock
     val wallpaper: Boolean = appearance.wallpaper

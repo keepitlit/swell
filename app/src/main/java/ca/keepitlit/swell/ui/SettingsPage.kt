@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,25 +56,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import ca.keepitlit.swell.SwellModel
-import ca.keepitlit.swell.seats.SeatBook
 import ca.keepitlit.swell.theme.Appearance
 import ca.keepitlit.swell.theme.AppearancePrefs
 import ca.keepitlit.swell.theme.ClockPos
 import ca.keepitlit.swell.theme.Role
-import ca.keepitlit.swell.theme.ThemeId
 import ca.keepitlit.swell.theme.Themes
-import ca.keepitlit.swell.theme.Tri
 import ca.keepitlit.swell.wallpaper.SwellWallpaper
 
 /** Which line has its choices open. One at a time, so the column never grows two lists at once. */
-private enum class Open { STYLE, ACCENT, PICKER, COLOURS, BACKDROP, CLOCK, MONO, START_OVER, RESET_LOOK }
+private enum class Open { ACCENT, PICKER, COLOURS, BACKDROP, CLOCK, START_OVER, RESET_LOOK }
 
 /**
  * Settings, live: every change applies to home as it is made. Laid out like home: one column,
  * each line split at the screen's centre: the setting's name ends at the centre line, its value
  * starts just past it. Choices open as more lines under the one tapped, never as a row of buttons.
  *
- * Only what home's list uses is here: the look (style, accent, colours, backdrop), the clock, the
+ * Only what home's list uses is here: the look (accent, colours, backdrop), the clock, the
  * icons, coming home, the least used apps, and the ranking.
  *
  * Material's slider is used for its touch and accessibility behaviour, with its colours set
@@ -150,22 +146,13 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
         ) {
             // ── Look ──────────────────────────────────────────────────────────────────
             Heading("Look")
-            Line("Style", a.theme.label, onClick = { toggle(Open.STYLE) })
-            if (opened == Open.STYLE) for (id in ThemeId.entries) {
-                Option(
-                    id.label, selected = a.theme == id,
-                    font = when (id) { ThemeId.MONO -> FontFamily.Monospace; ThemeId.ATELIER -> FontFamily.Serif; ThemeId.CANDY -> FontFamily.SansSerif },
-                    dot = Color(Themes.defaultAccent(id)),
-                ) { model.updateAppearance { it.copy(theme = id) } }
-            }
-
             val swatchName = Themes.SWATCHES.firstOrNull { it.second == a.effectiveAccent }?.first?.lowercase()
             Line(
-                "Accent", if (a.accent == null) "theme's own" else swatchName ?: Themes.hex(a.effectiveAccent),
+                "Accent", if (a.accent == null) "default" else swatchName ?: Themes.hex(a.effectiveAccent),
                 dot = Color(a.effectiveAccent), onClick = { toggle(Open.ACCENT) },
             )
             if (opened == Open.ACCENT || opened == Open.PICKER) {
-                Option("theme's own", selected = a.accent == null, dot = Color(Themes.defaultAccent(a.theme))) {
+                Option("default", selected = a.accent == null, dot = Color(Themes.defaultAccent())) {
                     model.updateAppearance { it.copy(accent = null) }
                 }
                 for ((name, colour) in Themes.SWATCHES) {
@@ -182,7 +169,7 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
             }
 
             Line(
-                "Colours", if (a.overrides.isEmpty()) "theme's own" else "${a.overrides.size} changed",
+                "Colours", if (a.overrides.isEmpty()) "default" else "${a.overrides.size} changed",
                 onClick = { toggle(Open.COLOURS) },
             )
             if (opened == Open.COLOURS) {
@@ -196,20 +183,20 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
                     )
                     if (editingRole == role) {
                         Picker(colour) { c -> model.updateAppearance { it.copy(overrides = it.overrides + (role to c)) } }
-                        if (changed) Action("Use the theme's ${role.label.lowercase()}") {
+                        if (changed) Action("Use the default ${role.label.lowercase()}") {
                             model.updateAppearance { it.copy(overrides = it.overrides - role) }
                         }
                     }
                 }
-                if (a.overrides.isNotEmpty()) Action("Use the theme's colours for all ${a.overrides.size}") {
+                if (a.overrides.isNotEmpty()) Action("Use the default colours for all ${a.overrides.size}") {
                     editingRole = null
                     model.updateAppearance { it.copy(overrides = emptyMap()) }
                 }
             }
 
-            Line("Backdrop", if (a.wallpaper) "phone's wallpaper" else "style's own", onClick = { toggle(Open.BACKDROP) })
+            Line("Backdrop", if (a.wallpaper) "phone's wallpaper" else "Swell's", onClick = { toggle(Open.BACKDROP) })
             if (opened == Open.BACKDROP) {
-                Option("style's own", selected = !a.wallpaper) { model.updateAppearance { it.copy(wallpaper = false) } }
+                Option("Swell's", selected = !a.wallpaper) { model.updateAppearance { it.copy(wallpaper = false) } }
                 Option("phone's wallpaper", selected = a.wallpaper) { model.updateAppearance { it.copy(wallpaper = true) } }
                 if (a.wallpaper) Action("Choose the phone's wallpaper") {
                     try {
@@ -250,14 +237,9 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
             )
 
             Line(
-                "Monochrome icons",
-                when (a.monoIcons) { Tri.AUTO -> "theme's (${if (a.iconsMono) "on" else "off"})"; Tri.ON -> "on"; Tri.OFF -> "off" },
-                onClick = { toggle(Open.MONO) },
+                "Monochrome icons", if (a.monoIcons) "on" else "off",
+                onClick = { model.updateAppearance { it.copy(monoIcons = !it.monoIcons) } },
             )
-            if (opened == Open.MONO) for (t in Tri.entries) {
-                val label = when (t) { Tri.AUTO -> "theme's"; Tri.ON -> "on"; Tri.OFF -> "off" }
-                Option(label, selected = a.monoIcons == t) { model.updateAppearance { it.copy(monoIcons = t) } }
-            }
 
             Line(
                 "Appear instantly", if (canCover) "on" else "Allow",
@@ -294,20 +276,12 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
                 Text("holds still", color = look.paper3, fontSize = 12.sp, fontFamily = look.bodyFont)
             }
             Spacer(Modifier.height(10.dp))
-            val events = model.book.log.take(6)
-            for (e in events) {
-                when (e.kind) {
-                    SeatBook.Event.Kind.NOTE -> Note(e.note ?: "")
-                    else -> Line(
-                        model.label(e.key),
-                        when (e.kind) {
-                            SeatBook.Event.Kind.EARNED -> "joined the list"
-                            SeatBook.Event.Kind.TOOK_LAST -> "replaced ${model.label(e.other ?: "")}"
-                            else -> "moved above ${model.label(e.other ?: "")}"
-                        },
-                        valueColour = look.paper3, size = 14, onClick = null,
-                    )
-                }
+            // Net places over the last few climbs: green gained, red lost.
+            for ((key, n) in remember(version) { model.book.shifts() }) {
+                Line(
+                    model.label(key), if (n > 0) "+$n" else "\u2212${-n}",
+                    valueColour = if (n > 0) GAIN else LOSS, mono = true, size = 14, onClick = null,
+                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -318,7 +292,7 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
             }
             Action("Reset the look", colour = look.ember2) { toggle(Open.RESET_LOOK) }
             if (opened == Open.RESET_LOOK) {
-                Option("reset style, colours, clock, icons", selected = false, colour = look.ember2) {
+                Option("reset accent, colours, backdrop, clock, icons", selected = false, colour = look.ember2) {
                     opened = null
                     model.updateAppearance { Appearance() }
                 }
@@ -404,7 +378,6 @@ private fun Line(
 private fun Option(
     text: String,
     selected: Boolean,
-    font: FontFamily? = null,
     dot: Color? = null,
     brush: Brush? = null,
     colour: Color? = null,
@@ -435,7 +408,7 @@ private fun Option(
             Text(
                 text,
                 color = colour ?: if (selected) look.paper else look.paper2,
-                fontSize = 16.sp, fontFamily = font ?: look.bodyFont,
+                fontSize = 16.sp, fontFamily = look.bodyFont,
                 fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             )
         }
@@ -475,6 +448,10 @@ private fun Note(text: String) {
 private fun Picker(colour: Int, onChange: (Int) -> Unit) {
     Box(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) { ColorPicker(colour = colour, onChange = onChange) }
 }
+
+/** Fixed, not palette roles: gain and loss read as green and red whatever the accent. */
+private val GAIN = Color(0xFF6FD98F)
+private val LOSS = Color(0xFFFF7A7A)
 
 @Composable
 private fun sliderColours(look: Look) = SliderDefaults.colors(

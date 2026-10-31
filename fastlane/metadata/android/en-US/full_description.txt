@@ -5,8 +5,8 @@ Every launch is a vote. Votes decay slowly, so this week matters more than last 
 • No folders, no dragging, nothing to configure
 • The apps you use most head the list; the lines stay still while the apps step through them
 • Every app, alphabetical and searchable, one swipe away in the drawer
-• Three styles (Mono, Atelier, Candy), accent colours, a role-by-role colour table, monochrome icons
-• Widgets, pinned shortcuts ("Add to Home screen" from your browser), and a live wallpaper that follows your theme
+• Accent colours, a role-by-role colour table, monochrome icons
+• Widgets, pinned shortcuts ("Add to Home screen" from your browser), and a live wallpaper that follows your colours
 • Work and private profiles
 
 Swell has no INTERNET permission. Your launch history never leaves the phone.

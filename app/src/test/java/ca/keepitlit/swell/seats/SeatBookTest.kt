@@ -200,4 +200,13 @@ class SeatBookTest {
         assertEquals(ranked, b.seats.filterNotNull())
         assertTrue(b.isOnShelf("a"))
     }
+
+    @Test
+    fun `shifts net each app's places over recent climbs`() {
+        val b = book()
+        b.seatAll(listOf("a", "b", "c"))
+        b.launch("c") // passes b and a: c +2, b -1, a -1
+        b.launch("b") // passes a only: b +1, a -1
+        assertEquals(listOf("c" to 2, "a" to -2), b.shifts())
+    }
 }

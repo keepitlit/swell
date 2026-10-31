@@ -3,30 +3,20 @@ package ca.keepitlit.swell.theme
 import kotlin.math.roundToInt
 
 /**
- * The three styles from the prototype, and the accent arithmetic that sits on top of them.
+ * Swell's palette, and the accent arithmetic that sits on top of it.
  *
  * Colours are ARGB ints so this file has no Compose on its classpath and the derivation can be
  * unit-tested. The prototype's rule set, kept exactly:
  *
- * - a theme is a fixed base palette (`--device-*` in the CSS);
- * - an **accent** is always applied (the theme's own by default, the user's if chosen) and it
+ * - the base is a fixed palette ([Themes.BASE], the prototype's candy `--device-*` block);
+ * - an **accent** is always applied (the base's own by default, the user's if chosen) and it
  *   rewrites `accent`, `accent2 = mix(accent 52%, white)`, `ember = accent`,
  *   `ember2 = mix(accent 72%, white)`, `tile = mix(accent 34%, shell)` and tints the wall;
  * - on top of that, any single **role** can be overridden outright. That is the "thorough" half of
  *   the colour tools: a swatch for the quick case, a role table for the rest.
+ *
+ * The prototype's mono and atelier styles were cut on 2026-10-30: one look, no name.
  */
-enum class ThemeId(val label: String, val blurb: String) {
-    MONO("Mono", "Monospace, hard corners, acid on graphite."),
-    ATELIER("Atelier", "Serif clock, patina and ember on dark linen."),
-    CANDY("Candy", "Round everything, violet and pink."),
-    ;
-
-    companion object {
-        val DEFAULT = MONO
-        fun of(name: String?): ThemeId = entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: DEFAULT
-    }
-}
-
 /** Every colour the launcher draws, by name. The order is the order the role table lists them. */
 enum class Role(val label: String, val hint: String) {
     SHELL("Background", "Behind everything"),
@@ -74,7 +64,7 @@ class Palette(private val values: IntArray) {
 
 object Themes {
 
-    /** The five swatches the prototype offers. The first is mono's own accent. */
+    /** The five swatches the prototype offers. */
     val SWATCHES: List<Pair<String, Int>> = listOf(
         "Acid green" to 0xFFB5E84D.toInt(),
         "Mint" to 0xFF65D6C2.toInt(),
@@ -83,65 +73,33 @@ object Themes {
         "Signal yellow" to 0xFFF3C969.toInt(),
     )
 
-    fun defaultAccent(id: ThemeId): Int = base(id).accent
+    fun defaultAccent(): Int = BASE.accent
 
-    /** The `--device-*` block for each theme, verbatim. */
-    fun base(id: ThemeId): Palette = when (id) {
-        ThemeId.MONO -> Palette.of(
-            Role.SHELL to 0xFF080A0E.toInt(),
-            Role.PAPER to 0xFFF0F3EA.toInt(),
-            Role.PAPER2 to 0xFFADB6B0.toInt(),
-            Role.PAPER3 to 0xFF69747A.toInt(),
-            Role.ACCENT to 0xFFB5E84D.toInt(),
-            Role.ACCENT2 to 0xFFD3FF75.toInt(),
-            Role.EMBER to 0xFFFF765C.toInt(),
-            Role.EMBER2 to 0xFFFF9A84.toInt(),
-            Role.TILE to 0xFF222832.toInt(),
-            Role.DRAWER to 0xFF11151C.toInt(),
-            Role.SEARCH to 0xFF080A0E.toInt(),
-            Role.RULE to argb(0.15f, 0xF0, 0xF3, 0xEA),
-            Role.RULE2 to argb(0.32f, 0xF0, 0xF3, 0xEA),
-        )
-        ThemeId.ATELIER -> Palette.of(
-            Role.SHELL to 0xFF14221F.toInt(),
-            Role.PAPER to 0xFFF2EEE2.toInt(),
-            Role.PAPER2 to 0xFFBDCFC5.toInt(),
-            Role.PAPER3 to 0xFF81948B.toInt(),
-            Role.ACCENT to 0xFF176B60.toInt(),
-            Role.ACCENT2 to 0xFF6FBCAE.toInt(),
-            Role.EMBER to 0xFFCB6244.toInt(),
-            Role.EMBER2 to 0xFFB95B40.toInt(),
-            Role.TILE to 0xFF264B45.toInt(),
-            Role.DRAWER to 0xFF172A26.toInt(),
-            Role.SEARCH to 0xFF0F1D1B.toInt(),
-            Role.RULE to argb(0.16f, 0xF2, 0xEE, 0xE2),
-            Role.RULE2 to argb(0.30f, 0xF2, 0xEE, 0xE2),
-        )
-        ThemeId.CANDY -> Palette.of(
-            Role.SHELL to 0xFF3D315C.toInt(),
-            Role.PAPER to 0xFFFBF8FF.toInt(),
-            Role.PAPER2 to 0xFFD9D1EC.toInt(),
-            Role.PAPER3 to 0xFFAAA0C3.toInt(),
-            Role.ACCENT to 0xFF6D5BD0.toInt(),
-            Role.ACCENT2 to 0xFFAA9FFF.toInt(),
-            Role.EMBER to 0xFFF0788E.toInt(),
-            Role.EMBER2 to 0xFFDC637A.toInt(),
-            Role.TILE to 0xFF6557B9.toInt(),
-            Role.DRAWER to 0xFF302647.toInt(),
-            Role.SEARCH to 0xFF251E39.toInt(),
-            Role.RULE to argb(0.18f, 0xFB, 0xF8, 0xFF),
-            Role.RULE2 to argb(0.34f, 0xFB, 0xF8, 0xFF),
-        )
-    }
+    /** The prototype's candy `--device-*` block, verbatim. */
+    val BASE: Palette = Palette.of(
+        Role.SHELL to 0xFF3D315C.toInt(),
+        Role.PAPER to 0xFFFBF8FF.toInt(),
+        Role.PAPER2 to 0xFFD9D1EC.toInt(),
+        Role.PAPER3 to 0xFFAAA0C3.toInt(),
+        Role.ACCENT to 0xFF6D5BD0.toInt(),
+        Role.ACCENT2 to 0xFFAA9FFF.toInt(),
+        Role.EMBER to 0xFFF0788E.toInt(),
+        Role.EMBER2 to 0xFFDC637A.toInt(),
+        Role.TILE to 0xFF6557B9.toInt(),
+        Role.DRAWER to 0xFF302647.toInt(),
+        Role.SEARCH to 0xFF251E39.toInt(),
+        Role.RULE to argb(0.18f, 0xFB, 0xF8, 0xFF),
+        Role.RULE2 to argb(0.34f, 0xFB, 0xF8, 0xFF),
+    )
 
     /**
      * The palette actually drawn: base, then the accent rewrite, then the user's role overrides.
      *
-     * @param accent null means "the theme's own", which still goes through the rewrite; the
-     *   prototype applies `data-accent` unconditionally, so mono's tile is olive, not slate.
+     * @param accent null means the base's own, which still goes through the rewrite; the
+     *   prototype applies `data-accent` unconditionally.
      */
-    fun resolve(id: ThemeId, accent: Int?, overrides: Map<Role, Int>): Palette {
-        var p = base(id)
+    fun resolve(accent: Int?, overrides: Map<Role, Int>): Palette {
+        var p = BASE
         val a = accent ?: p.accent
         p = p.with(Role.ACCENT, a)
             .with(Role.ACCENT2, mix(a, WHITE, 0.52f))
