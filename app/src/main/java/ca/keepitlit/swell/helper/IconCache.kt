@@ -7,11 +7,17 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.os.Process
 import android.util.Log
 import android.util.LruCache
 import ca.keepitlit.swell.data.AppEntry
+import kotlin.math.max
 
 /**
  * App icons, rasterised once and kept, plus each icon's dominant colour.
@@ -27,11 +33,12 @@ import ca.keepitlit.swell.data.AppEntry
  *   cold-start path work: after a process death the layout snapshot has the colour but the icons
  *   are not loaded yet, so frame 1 paints recognisable blobs rather than empty squares.
  *
- * ## Why `LauncherApps` and not `PackageManager`
+ * ## One shape, one size
  *
- * `LauncherActivityInfo.getBadgedIcon(density)` returns the icon **with the work-profile badge
- * already applied by the system**. `PackageManager.getApplicationIcon` does not, and an unbadged
- * work-profile icon is a launcher lying about which user an app will open as.
+ * Every icon is drawn into the system icon shape at full size: adaptive icons as they are, any
+ * other picture fitted by [IconShape]. The work-profile badge goes on afterwards, through
+ * `PackageManager.getUserBadgedIcon`, so reshaping never crops it; an unbadged work-profile icon
+ * is a launcher lying about which user an app will open as.
  *
  * ## Threading
  *
@@ -77,9 +84,10 @@ object IconCache {
 
         val drawable =
             if (app.shortcutId != null) shortcutIcon(context, app, shortcutInfo)
-            else badgedIcon(context, app, activityInfo)
+            else launcherIcon(context, app, activityInfo)
         if (drawable == null) return null
-        val bitmap = drawable.rasterise(sizePx) ?: return null
+        val shaped = drawable.shaped(sizePx) ?: return null
+        val bitmap = if (app.shortcutId == null) badged(context, app, shaped, sizePx) else shaped
         bitmaps.put(app.key, bitmap)
         colours[app.key] = dominantColourOf(bitmap)
         return bitmap
@@ -114,21 +122,21 @@ object IconCache {
         return try {
             launcherApps.getActivityList(app.packageName, app.user)
                 ?.firstOrNull()
-                ?.getBadgedIcon(density)
+                ?.getIcon(density)
         } catch (e: Exception) {
             Log.d(TAG, "no fallback icon for ${app.packageName}: $e")
             null
         }
     }
 
-    private fun badgedIcon(
+    private fun launcherIcon(
         context: Context,
         app: AppEntry,
         activityInfo: LauncherActivityInfo?,
     ): Drawable? {
         activityInfo?.let {
             return try {
-                it.getBadgedIcon(context.resources.displayMetrics.densityDpi)
+                it.getIcon(context.resources.displayMetrics.densityDpi)
             } catch (e: Exception) {
                 Log.d(TAG, "no icon for ${app.packageName}/${app.user.hashCode()}: $e")
                 null
@@ -140,11 +148,57 @@ object IconCache {
         return try {
             launcherApps.getActivityList(app.packageName, app.user)
                 ?.firstOrNull { it.componentName == component }
-                ?.getBadgedIcon(context.resources.displayMetrics.densityDpi)
+                ?.getIcon(context.resources.displayMetrics.densityDpi)
         } catch (e: Exception) {
             // A profile going away mid-sweep throws rather than returning empty. Not worth a
             // warning per app; the node falls back to its dominant colour.
             Log.d(TAG, "no icon for ${app.packageName}/${app.user.hashCode()}: $e")
+            null
+        }
+    }
+
+    /** The work-profile (or Private Space) badge on a shaped icon; personal icons pass through. */
+    private fun badged(context: Context, app: AppEntry, shaped: Bitmap, sizePx: Int): Bitmap {
+        if (app.user == Process.myUserHandle()) return shaped
+        return try {
+            context.packageManager
+                .getUserBadgedIcon(BitmapDrawable(context.resources, shaped), app.user)
+                .rasterise(sizePx) ?: shaped
+        } catch (e: Exception) {
+            Log.d(TAG, "no badge for ${app.packageName}/${app.user.hashCode()}: $e")
+            shaped
+        }
+    }
+
+    /** This icon in the system icon shape, filling [sizePx]. */
+    private fun Drawable.shaped(sizePx: Int): Bitmap? {
+        if (sizePx <= 0) return null
+        if (this is AdaptiveIconDrawable) return rasterise(sizePx)
+        val source = (this as? BitmapDrawable)?.bitmap?.takeIf { !it.isRecycled }
+            ?: rasterise(if (intrinsicWidth > 0 && intrinsicHeight > 0) max(intrinsicWidth, intrinsicHeight) else sizePx)
+            ?: return null
+        val pixels = IntArray(source.width * source.height)
+        source.getPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+        val fit = IconShape.read(source.width, source.height, pixels) ?: return null
+        return try {
+            val out = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            // An empty adaptive icon's mask is the system shape, scaled to its bounds.
+            val mask = AdaptiveIconDrawable(ColorDrawable(0), ColorDrawable(0))
+                .apply { setBounds(0, 0, sizePx, sizePx) }
+                .iconMask
+            canvas.clipPath(mask)
+            fit.fill?.let { canvas.drawColor(it) }
+            val target = if (fit.tile) sizePx.toFloat() else sizePx * IconShape.GLYPH_SCALE
+            val matrix = Matrix().apply {
+                postTranslate(-fit.cx, -fit.cy)
+                postScale(target / fit.side, target / fit.side)
+                postTranslate(sizePx / 2f, sizePx / 2f)
+            }
+            canvas.drawBitmap(source, matrix, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+            out
+        } catch (e: Exception) {
+            Log.w(TAG, "icon reshape failed: $e")
             null
         }
     }
