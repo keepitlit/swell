@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -276,12 +277,16 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
                 Text("holds still", color = look.paper3, fontSize = 12.sp, fontFamily = look.bodyFont)
             }
             Spacer(Modifier.height(10.dp))
-            // Net places over the last few climbs: green gained, red lost.
-            for ((key, n) in remember(version) { model.book.shifts() }) {
-                Line(
-                    model.label(key), if (n > 0) "+$n" else "\u2212${-n}",
-                    valueColour = if (n > 0) GAIN else LOSS, mono = true, size = 14, onClick = null,
-                )
+            // Net places over the last few climbs: lost on the left, gained on the right, the
+            // numbers meeting at the centre line. Biggest change on the top row of each side.
+            val shifts = remember(version) { model.book.shifts() }
+            val gains = shifts.filter { it.second > 0 }
+            val losses = shifts.filter { it.second < 0 }.reversed()
+            for (i in 0 until maxOf(gains.size, losses.size)) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Shift(losses.getOrNull(i)?.let { model.label(it.first) to "\u2212${-it.second}" }, LOSS, Modifier.weight(1f), left = true)
+                    Shift(gains.getOrNull(i)?.let { model.label(it.first) to "+${it.second}" }, GAIN, Modifier.weight(1f), left = false)
+                }
             }
 
             Spacer(Modifier.height(8.dp))
@@ -447,6 +452,31 @@ private fun Note(text: String) {
 @Composable
 private fun Picker(colour: Int, onChange: (Int) -> Unit) {
     Box(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) { ColorPicker(colour = colour, onChange = onChange) }
+}
+
+/** One half of a shifts row: the name, then the number against the centre line. */
+@Composable
+private fun Shift(entry: Pair<String, String>?, colour: Color, modifier: Modifier, left: Boolean) {
+    val look = LocalLook.current
+    Row(
+        modifier.padding(horizontal = 6.dp),
+        horizontalArrangement = if (left) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (entry == null) return@Row
+        val (name, number) = entry
+        val nameText = @Composable {
+            Text(
+                name, color = look.paper2, fontSize = 14.sp, fontFamily = look.bodyFont, maxLines = 1,
+                overflow = TextOverflow.Ellipsis, textAlign = if (left) TextAlign.End else TextAlign.Start,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
+        val numberText = @Composable {
+            Text(number, color = colour, fontSize = 14.sp, fontFamily = look.monoFont, maxLines = 1)
+        }
+        if (left) { nameText(); Spacer(Modifier.width(8.dp)); numberText() } else { numberText(); Spacer(Modifier.width(8.dp)); nameText() }
+    }
 }
 
 /** Fixed, not palette roles: gain and loss read as green and red whatever the accent. */
