@@ -145,7 +145,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.safeDrawing)
                     .pointerInput(Unit) {
-                        // Swipe up anywhere that is not a tile: the prototype's shelf handle, as a gesture.
+                        // Swipe up anywhere that is not an app line opens all apps.
                         var travel = 0f
                         detectVerticalDragGestures(
                             onDragStart = { travel = 0f },
@@ -402,7 +402,7 @@ private fun SeatLine(
         val left = 1600 - (System.currentTimeMillis() - movedAt)
         if (movedAt > 0 && left > 0) { justMoved = true; delay(left); justMoved = false } else justMoved = false
     }
-    // Read lazily, on tap, like the grid's cells: the icon's bounds seed the launch animation.
+    // Read lazily, on tap: the icon's bounds seed the launch animation.
     var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val iconSize = look.iconSize
     Row(

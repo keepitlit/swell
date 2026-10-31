@@ -20,7 +20,7 @@ import android.widget.Toast
  *
  * ### No confirmation dialog
  *
- * The system name for this is "confirm", and a launcher with a fixed grid has to ask: it needs
+ * The system name for this is "confirm", and a launcher with fixed places has to ask: it needs
  * somewhere to put the icon and the user has to choose where. Swell has no such question. Every
  * seatable thing already gets a seat automatically, and rank is earned by use rather than chosen,
  * so the only honest dialog would offer no decisions. It accepts, says so, and lets the new

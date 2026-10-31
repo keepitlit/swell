@@ -8,7 +8,7 @@ class LeastUsedTest {
 
     @Test
     fun `a launch records its day`() {
-        val b = SeatBook(4, 4)
+        val b = SeatBook()
         b.launch("a")
         repeat(3) { b.tickDay() }
         assertEquals(3, b.use(listOf("a")).daysSince)
@@ -16,7 +16,7 @@ class LeastUsedTest {
 
     @Test
     fun `an app never opened has no last day`() {
-        val b = SeatBook(4, 4)
+        val b = SeatBook()
         b.seatAll(listOf("a"))
         val u = b.use(listOf("a"))
         assertEquals(0, u.opens)
@@ -25,7 +25,7 @@ class LeastUsedTest {
 
     @Test
     fun `a package sums its keys and takes the latest launch`() {
-        val b = SeatBook(4, 4)
+        val b = SeatBook()
         b.launch("p|One")
         b.tickDay(); b.tickDay()
         b.launch("p|Two")
@@ -36,7 +36,7 @@ class LeastUsedTest {
 
     @Test
     fun `never opened comes first, longest watched first, then the lowest score`() {
-        val b = SeatBook(4, 4)
+        val b = SeatBook()
         b.seatAll(listOf("old", "new"))
         b.appOrNew("old").tenure = 40
         b.appOrNew("new").tenure = 2

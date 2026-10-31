@@ -36,8 +36,7 @@ class SwellModel(private val context: Context) {
     var appearance by mutableStateOf(appearancePrefs.load())
         private set
 
-    // Home is one list, so the book's pages are only its capacity: no shelf, plain 4 x 4 chunks.
-    val book: SeatBook = store.load().also { it.configure(4, 4, shelf = false) }
+    val book: SeatBook = store.load()
 
     var apps by mutableStateOf<List<AppEntry>>(emptyList())
         private set

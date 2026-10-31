@@ -95,7 +95,7 @@ fun AppMenu(
             )
             Item("App info", onAppInfo)
             // A pinned shortcut has no package of its own: "Uninstall" here would remove the app
-            // that hosts it: remove a web page from the grid and lose the whole browser.
+            // that hosts it: remove a web page from home and lose the whole browser.
             Item(
                 if (entry.isShortcut) "Remove" else "Uninstall",
                 onUninstall,

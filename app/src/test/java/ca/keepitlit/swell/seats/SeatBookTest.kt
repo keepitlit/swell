@@ -8,14 +8,11 @@ import org.junit.Test
 
 class SeatBookTest {
 
-    private fun book() = SeatBook(4, 4)
+    private fun book() = SeatBook()
 
     @Test
-    fun `a fresh book is one page plus the shelf`() {
-        val b = book()
-        assertEquals(20, b.total)
-        assertEquals(1, b.pages)
-        assertEquals(4, b.dockSeats)
+    fun `a fresh book has no seats`() {
+        assertEquals(0, book().total)
     }
 
     @Test
@@ -49,6 +46,7 @@ class SeatBookTest {
     @Test
     fun `the gap at twenty seats matches the prototype exactly`() {
         val b = book()
+        b.seatAll((1..20).map { "app$it" })
         // base 0.22 + prestige (20 - seat) * 0.035 + 0 evidence, hysteresis 1.
         assertEquals(0.22 + 20 * 0.035, b.gapNeeded(0), 1e-12)
         assertEquals(0.22 + 1 * 0.035, b.gapNeeded(19), 1e-12)
@@ -96,14 +94,12 @@ class SeatBookTest {
     }
 
     @Test
-    fun `seatAll gives every app a seat, alphabetically, on as many pages as it takes`() {
+    fun `seatAll gives every app a seat, alphabetically, and no more`() {
         val b = book()
         val keys = (1..50).map { "app%02d".format(it) }
         assertTrue(b.seatAll(keys))
         for ((i, k) in keys.withIndex()) assertEquals(i, b.seatOf(k))
-        // 50 apps: 4 on the shelf, 46 on pages of 16 -> 3 pages -> 52 seats.
-        assertEquals(3, b.pages)
-        assertEquals(52, b.total)
+        assertEquals(50, b.total)
         assertFalse(b.seatAll(keys))
     }
 
@@ -114,20 +110,6 @@ class SeatBookTest {
         b.launch("c")
         b.seatAll(listOf("a", "b", "c"))
         assertEquals(2, b.seatOf("a"))
-    }
-
-    @Test
-    fun `changing the grid keeps the rank and re-chunks the pages`() {
-        val b = book()
-        val keys = (1..30).map { "app%02d".format(it) }
-        b.seatAll(keys)
-        b.configure(5, 5)
-        for ((i, k) in keys.withIndex()) assertEquals(i, b.seatOf(k))
-        assertEquals(5, b.dockSeats)
-        assertEquals(25, b.pageSeats)
-        // 30 apps: 5 shelf + 25 page = one page exactly.
-        assertEquals(1, b.pages)
-        assertEquals(30, b.total)
     }
 
     @Test
@@ -143,12 +125,12 @@ class SeatBookTest {
     }
 
     @Test
-    fun `pruning shrinks the book back to whole pages`() {
+    fun `pruning shrinks the book to the apps left`() {
         val b = book()
         b.seatAll((1..40).map { "app$it" })
-        assertEquals(3, b.pages)
+        assertEquals(40, b.total)
         b.prune((1..10).map { "app$it" }.toSet())
-        assertEquals(1, b.pages)
+        assertEquals(10, b.total)
     }
 
     @Test
@@ -178,27 +160,7 @@ class SeatBookTest {
         assertEquals(3, b.day)
         assertEquals(9, b.totalOpens)
         assertEquals(67, b.stability())
-        assertEquals(20, b.total)
-    }
-
-    @Test
-    fun `hiding the shelf hands its apps to the first row of the first page, and back`() {
-        val b = book()
-        for (k in listOf("a", "b", "c", "d", "e", "f")) b.launch(k)
-        val ranked = b.seats.filterNotNull()
-        assertEquals(listOf("a", "b", "c", "d"), ranked.take(4))
-
-        b.configure(4, 4, shelf = false)
-        assertEquals(0, b.dockSeats)
-        assertEquals(16, b.total)
-        assertEquals(ranked, b.seats.filterNotNull())
-        assertEquals(ranked.take(4), b.pageSeats(0).take(4))
-        assertFalse(b.isOnShelf("a"))
-
-        b.configure(4, 4, shelf = true)
-        assertEquals(20, b.total)
-        assertEquals(ranked, b.seats.filterNotNull())
-        assertTrue(b.isOnShelf("a"))
+        assertEquals(2, b.total)
     }
 
     @Test
