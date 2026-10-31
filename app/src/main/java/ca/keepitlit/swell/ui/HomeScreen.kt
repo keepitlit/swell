@@ -325,6 +325,8 @@ private fun SeatSteps(
         val maxFirst = (keys.size - clear).coerceAtLeast(0)
         val pitchPx = with(LocalDensity.current) { pitch.toPx() }
         val height = maxHeight
+        // Empty width left of the list's icons; the dock stands in it.
+        val gutter = maxWidth / 2 - 8.dp - look.iconSize
         Box(
             Modifier
                 .fillMaxSize()
@@ -390,11 +392,12 @@ private fun SeatSteps(
                         model, k,
                         Modifier.offset { IntOffset(0, (bandPx + (i - state.first.coerceIn(0, maxFirst)) * pitchPx).roundToInt()) },
                         onOpen, onHold,
+                        inset = (gutter - 8.dp).coerceAtLeast(0.dp),
                     )
                 }
             }
         }
-        Dock(model, slots = clear, gutter = maxWidth / 2 - 8.dp - look.iconSize, onOpen = onOpen, onHold = onHold)
+        Dock(model, slots = clear, gutter = gutter, onOpen = onOpen, onHold = onHold)
     }
 }
 
@@ -462,8 +465,8 @@ private fun Dock(
 
 /**
  * One app's line: the icon bare (no tile), right-aligned to the screen's centre line, and its name
- * starting just past it, so the divide between icons and names runs down the middle. The whole
- * line is the tap target.
+ * starting just past it, so the divide between icons and names runs down the middle. The tap
+ * target starts [inset] in, 8 dp left of the icon, so it never reaches the dock.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -473,6 +476,7 @@ private fun SeatLine(
     modifier: Modifier,
     onOpen: (AppEntry, Rect?) -> Unit,
     onHold: (AppEntry, Offset) -> Unit,
+    inset: Dp,
 ) {
     val look = LocalLook.current
     val book = model.book
@@ -490,6 +494,7 @@ private fun SeatLine(
         modifier
             .fillMaxWidth()
             .height(linePitch(look))
+            .padding(start = inset)
             .clip(RoundedCornerShape(look.cellRadius))
             .combinedClickable(
                 onClick = {
@@ -503,8 +508,8 @@ private fun SeatLine(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Two equal halves: the icon ends 8 dp short of the centre line, the name starts 8 dp past it.
-        Box(Modifier.weight(1f).padding(end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+        // The icon ends 8 dp short of the centre line and the name starts 8 dp past it.
+        Box(Modifier.padding(horizontal = 8.dp)) {
             Box(
                 Modifier
                     .onPlaced { coords = it }
