@@ -51,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -221,12 +223,16 @@ private fun LeastUsedColumn(model: SwellModel, onClose: () -> Unit) {
 @Composable
 private fun CandidateLine(c: Candidate, on: Boolean, model: SwellModel, onToggle: () -> Unit) {
     val look = LocalLook.current
+    val haptics = LocalHapticFeedback.current
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(look.cellRadius))
-            .clickable(onClick = onToggle)
+            .clickable {
+                haptics.performHapticFeedback(if (on) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                onToggle()
+            }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

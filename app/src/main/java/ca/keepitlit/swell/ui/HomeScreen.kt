@@ -82,7 +82,9 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -121,6 +123,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
     val pageCount = 2
     val pager = rememberPagerState(initialPage = 1) { pageCount }
     val stepState = remember { StepState() }
+    val haptics = LocalHapticFeedback.current
     LaunchedEffect(homeSignal) {
         // HOME pressed while already home: overlays close, first screen, top of the list.
         drawerOpen = false
@@ -170,10 +173,17 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                     .pointerInput(Unit) {
                         // Swipe up anywhere that is not an app line opens all apps.
                         var travel = 0f
+                        var armed = false
                         detectVerticalDragGestures(
-                            onDragStart = { travel = 0f },
+                            onDragStart = { travel = 0f; armed = false },
                             onDragEnd = { if (travel < -60.dp.toPx()) drawerOpen = true },
-                        ) { _, dy -> travel += dy }
+                        ) { _, dy ->
+                            travel += dy
+                            // A bump as the swipe crosses the line where letting go opens all apps.
+                            val past = travel < -60.dp.toPx()
+                            if (past && !armed) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                            armed = past
+                        }
                     },
             ) {
                 if (look.clock == ClockPos.TOP) HeroTime(onTap = openClock, onLongPress = { settingsOpen = true }) else Spacer(Modifier.height(12.dp))
@@ -345,6 +355,7 @@ private fun SeatSteps(
     val keys = listKeys(model)
     val decay = rememberSplineBasedDecay<Float>()
     val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     val fling = remember { Animatable(0f) }
     // Where this column sits in the window, for the dock, which is placed against the screen.
     var placed by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -402,7 +413,10 @@ private fun SeatSteps(
                         },
                     ) { change, dy ->
                         tracker.addPosition(change.uptimeMillis, change.position)
+                        // A detent under the finger for each line stepped; a fling steps silently.
+                        val was = state.first
                         spend(dy)
+                        if (state.first != was) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }
                 },
         ) {
@@ -464,6 +478,7 @@ private fun Dock(
     if (keys.isEmpty()) return
     val icon = dockIcon(look)
     val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
     // From the column's left to past the screen's edge: the page margin, the safe-area inset, the bleed.
     val toEdgePx = with(density) { (PAGE_PAD + DOCK_BLEED).roundToPx() } +
         WindowInsets.safeDrawing.getLeft(density, LayoutDirection.Ltr)
@@ -521,6 +536,7 @@ private fun Dock(
                         }
                         return@awaitEachGesture
                     }
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     onHold(entry, bounds[k]?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero)
                     var travel = 0f
                     var dragging = false
@@ -544,6 +560,7 @@ private fun Dock(
                         }
                         lift += dy
                         // Past half a place, trade places with the neighbour; the icon stays under the finger.
+                        val from = slot
                         while (lift > pitchPx / 2 && slot < now.size - 1) {
                             now = now.toMutableList().apply { this[slot] = this[slot + 1]; this[slot + 1] = k }
                             slot++; lift -= pitchPx
@@ -552,9 +569,13 @@ private fun Dock(
                             now = now.toMutableList().apply { this[slot] = this[slot - 1]; this[slot - 1] = k }
                             slot--; lift += pitchPx
                         }
+                        if (slot != from) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         order = now
                     }
-                    if (dragging && now != list) model.orderDock(now.asReversed())
+                    if (dragging && now != list) {
+                        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                        model.orderDock(now.asReversed())
+                    }
                     order = null
                     moving = null
                     lift = 0f
