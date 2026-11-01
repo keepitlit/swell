@@ -207,7 +207,7 @@ class SwellModel(private val context: Context) {
     fun resetPage() {
         book.reset()
         book.seatAll(apps.map { it.key })
-        book.note("Started over. The list reorders as you open apps.")
+        book.note("Started over")
         version++
         save()
     }

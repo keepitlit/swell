@@ -63,7 +63,7 @@ class SeatStore(private val context: Context) {
             if (v < 2) {
                 // Books saved under the per-launch climb budget hold used apps below unused ones.
                 val moved = book.settle()
-                book.note("Re-sorted by use: an app you have opened is never behind one you have not.")
+                book.note("Re-sorted by use")
                 Log.i(TAG, "seat book v$v -> $VERSION: settle moved=$moved")
                 write(serialize(book))
             }

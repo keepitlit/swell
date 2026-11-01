@@ -225,7 +225,7 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
             if (opened == Open.CLOCK) for (p in ClockPos.entries) {
                 Option(p.label, selected = a.clock == p) { model.updateAppearance { it.copy(clock = p) } }
             }
-            // With no clock to hold, the handle is the only way back here.
+            // With no clock to hold, the handle is the only way back here: the one place a hint stays.
             if (a.clock == ClockPos.OFF) Note("Hold the handle under the list for settings.")
 
             Line("Icon size", "${a.iconSize} dp", onClick = null)
@@ -252,8 +252,8 @@ private fun SettingsColumn(model: SwellModel, onClose: () -> Unit, onLeastUsed: 
                     )
                 }),
             )
-            // Without "display over other apps" the system launcher holds Swell back about a second.
-            if (!canCover) Note("Off: leaving an app shows bare wallpaper for about a second.")
+            // Without "display over other apps" the system launcher holds Swell back about a second,
+            // so leaving an app shows bare wallpaper first. The row's name already says what Allow buys.
 
             // ── Apps ──────────────────────────────────────────────────────────────────
             Heading("Apps")

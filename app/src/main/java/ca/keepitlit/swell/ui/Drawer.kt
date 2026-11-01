@@ -175,19 +175,13 @@ fun Drawer(
                             Text(entry.label, color = look.paper, fontSize = 15.sp, fontWeight = FontWeight.Medium, fontFamily = look.bodyFont, maxLines = 1, modifier = Modifier.weight(1f))
                         }
                     }
-                    if (rows.isEmpty()) item { Text("Nothing matches.", color = look.paper3, fontSize = 13.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(8.dp)) }
+                    if (rows.isEmpty()) item { Text("No app called “${query.trim()}”", color = look.paper3, fontSize = 13.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(8.dp)) }
                 }
                 // Searching narrows the list to a few rows; the letters would only get in the way.
                 if (query.isBlank() && sections.size > 1) AlphabetRail(sections, listState)
                 }
                 Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    val st = model.book.stability()
-                    Text(
-                        "stability $st% · day ${model.book.day} · ${model.book.totalOpens} launches",
-                        color = look.paper3, fontSize = 11.sp, fontFamily = look.monoFont, maxLines = 1,
-                        modifier = Modifier.weight(1f),
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Pill("Settings", onClick = onSettings)
                 }
             }

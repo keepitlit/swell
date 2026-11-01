@@ -154,7 +154,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
         val entry = target?.let { c -> model.apps.firstOrNull { it.packageName == c.packageName && it.user == android.os.Process.myUserHandle() } }
         when {
             entry != null -> open(entry, null)
-            target != null -> try { context.startActivity(intent) } catch (_: Exception) { model.showToast("No clock app") }
+            target != null -> try { context.startActivity(intent) } catch (_: Exception) { model.showToast("Couldn't open the clock") }
             else -> model.showToast("No clock app")
         }
     }

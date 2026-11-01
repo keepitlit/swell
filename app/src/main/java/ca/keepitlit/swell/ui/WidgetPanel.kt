@@ -88,10 +88,6 @@ fun WidgetPanel(widgets: Widgets, modifier: Modifier = Modifier) {
         }
         item {
             Column(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (slots.isEmpty()) {
-                    Text("Widgets", color = look.paper2, fontSize = 15.sp, fontWeight = FontWeight.Medium, fontFamily = look.bodyFont)
-                    Text("System widgets live here, to the left of your apps.", color = look.paper3, fontSize = 12.sp, fontFamily = look.bodyFont, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
-                }
                 Pill("Add a widget", onClick = { picking = true }, primary = slots.isEmpty())
             }
         }

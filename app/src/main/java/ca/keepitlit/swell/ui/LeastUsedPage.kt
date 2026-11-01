@@ -180,7 +180,7 @@ private fun LeastUsedColumn(model: SwellModel, onClose: () -> Unit) {
             }
             item {
                 Text(
-                    "Apps built into the phone can't be uninstalled and aren't listed.",
+                    "Built-in apps aren't listed: they can't be uninstalled.",
                     color = look.paper3, fontSize = 13.sp, fontFamily = look.bodyFont, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
                 )
