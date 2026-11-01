@@ -7,13 +7,13 @@ open things: restless for the first few days, then still enough to learn with yo
 Kotlin + Compose. **No INTERNET permission**; your launch history never leaves the phone.
 
 <p>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.jpg" width="200" alt="Home: one app per line, most used at the top">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_drawer.jpg" width="200" alt="All apps: alphabetical, with search and a letter rail">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_menu.jpg" width="200" alt="Long-press menu: Open, App info, Uninstall">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.jpg" width="200" alt="Home: one app per line, most used at the top, with a dock beside it">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_all_apps.jpg" width="200" alt="All apps: alphabetical, with search and a letter rail">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_menu.jpg" width="200" alt="Long-press menu on a docked app: move, remove, rename, app info, uninstall">
 </p>
 <p>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_settings.jpg" width="200" alt="Settings: look and home">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_settings_bottom.jpg" width="200" alt="Settings: reordering, and places each app gained or lost">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_edit_icon.jpg" width="200" alt="Edit name and icon: rename an app and pick one of Swell's icons">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_settings.jpg" width="200" alt="Settings: look and home">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_least_used.jpg" width="200" alt="Least used: select apps to uninstall">
 </p>
 
