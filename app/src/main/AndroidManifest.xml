@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- Early reveal: Swell draws its own frame above the system launcher's recents stall. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- The backdrop as a live wallpaper is optional; a phone without live wallpapers still installs. -->
     <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
 

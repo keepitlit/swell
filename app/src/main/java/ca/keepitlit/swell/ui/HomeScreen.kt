@@ -7,7 +7,6 @@ import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -52,14 +51,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.core.animateDecay
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import kotlin.math.roundToInt
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -353,10 +349,6 @@ private fun SeatSteps(
 ) {
     val look = LocalLook.current
     val keys = listKeys(model)
-    val decay = rememberSplineBasedDecay<Float>()
-    val scope = rememberCoroutineScope()
-    val haptics = LocalHapticFeedback.current
-    val fling = remember { Animatable(0f) }
     // Where this column sits in the window, for the dock, which is placed against the screen.
     var placed by remember { mutableStateOf<LayoutCoordinates?>(null) }
     BoxWithConstraints(modifier.onPlaced { placed = it }) {
@@ -375,49 +367,9 @@ private fun SeatSteps(
                 .fillMaxSize()
                 .clipToBounds()
                 .edgeBlurFade(EDGE_BAND)
-                .pointerInput(maxFirst, pitchPx) {
-                    var travel = 0f
-                    // Spend drag travel a line at a time; false once an end is reached.
-                    fun spend(dy: Float): Boolean {
-                        travel += dy
-                        while (travel <= -pitchPx) {
-                            if (state.first >= maxFirst) { travel = 0f; return false }
-                            state.first++
-                            travel += pitchPx
-                        }
-                        while (travel >= pitchPx) {
-                            if (state.first <= 0) { travel = 0f; return false }
-                            state.first--
-                            travel -= pitchPx
-                        }
-                        return true
-                    }
-                    val tracker = VelocityTracker()
-                    detectVerticalDragGestures(
-                        onDragStart = {
-                            scope.launch { fling.stop() }
-                            state.first = state.first.coerceIn(0, maxFirst)
-                            travel = 0f
-                            tracker.resetTracking()
-                        },
-                        onDragEnd = {
-                            val v = tracker.calculateVelocity().y
-                            scope.launch {
-                                fling.snapTo(0f)
-                                var last = 0f
-                                fling.animateDecay(v, decay) {
-                                    if (!spend(value - last)) scope.launch { fling.stop() }
-                                    last = value
-                                }
-                            }
-                        },
-                    ) { change, dy ->
-                        tracker.addPosition(change.uptimeMillis, change.position)
-                        // A detent under the finger for each line stepped; a fling steps silently.
-                        val was = state.first
-                        spend(dy)
-                        if (state.first != was) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-                    }
+                .lineSteps(pitchPx, onStart = { state.first = state.first.coerceIn(0, maxFirst) }) { d ->
+                    val next = state.first + d
+                    if (next < 0 || next > maxFirst) false else { state.first = next; true }
                 },
         ) {
             // A step is a layout change only: each line reads the head in its offset lambda, so a

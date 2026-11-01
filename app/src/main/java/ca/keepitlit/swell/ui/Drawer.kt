@@ -39,6 +39,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -59,8 +61,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import ca.keepitlit.swell.SwellModel
 import ca.keepitlit.swell.data.AppEntry
+import kotlinx.coroutines.launch
 
 /** All apps, alphabetical, with search. Home holds the ranking; this is the index. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -156,8 +160,23 @@ fun Drawer(
                 val listState = rememberLazyListState()
                 LaunchedEffect(open, query) { listState.scrollToItem(0) }
                 val sections = remember(rows) { letterSections(rows) }
+                val scope = rememberCoroutineScope()
+                val pitchPx = with(LocalDensity.current) { (ROW + ROW_GAP).toPx() }
+                // The line at the top, kept here so a fast fling can step again before the list catches up.
+                var head by remember { mutableIntStateOf(0) }
                 Row(Modifier.weight(1f)) {
-                LazyColumn(Modifier.weight(1f), state = listState, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                // Steps a line at a time, as home does; the list's own scrolling is off.
+                LazyColumn(
+                    Modifier.weight(1f).lineSteps(pitchPx, onStart = { head = listState.firstVisibleItemIndex }) { d ->
+                        val fit = (listState.layoutInfo.viewportSize.height / pitchPx).toInt().coerceAtLeast(1)
+                        val next = head + d
+                        if (next < 0 || next > (rows.size - fit).coerceAtLeast(0)) false
+                        else { head = next; scope.launch { listState.scrollToItem(next) }; true }
+                    },
+                    state = listState,
+                    userScrollEnabled = false,
+                    verticalArrangement = Arrangement.spacedBy(ROW_GAP),
+                ) {
                     items(rows, key = { it.key }) { entry ->
                         var centre by remember { mutableStateOf(Offset.Zero) }
                         Row(
@@ -166,7 +185,8 @@ fun Drawer(
                                 .clip(RoundedCornerShape(look.fieldRadius))
                                 .combinedClickable(onClick = { onOpen(entry, null) }, onLongClick = { onHold(entry, centre) })
                                 .onGloballyPositioned { centre = it.boundsInWindow().center }
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                                .height(ROW)
+                                .padding(horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             // Bare, as on home: no tile behind the icon.
@@ -189,3 +209,7 @@ fun Drawer(
         }
     }
 }
+
+/** One app's row in all apps, and the gap between rows: together, one step of the list. */
+private val ROW = 56.dp
+private val ROW_GAP = 2.dp
