@@ -6,9 +6,9 @@ import android.util.Log
 /**
  * The icons a person can give any app, bundled so nothing has to be fetched or copied in.
  *
- * `assets/icons.tsv` holds one glyph per line: id, name, and its SVG path on a 24-unit square.
- * The glyphs are from Material Design Icons by Pictogrammers (Apache 2.0), generic ones only, no
- * brand marks.
+ * `assets/icons.tsv` holds one glyph per line: id, name, and its SVG path on a 24-unit square,
+ * drawn as a 2-unit stroke with round ends. The glyphs were drawn for Swell and are under its
+ * MIT licence like the rest of the app; no brand marks.
  */
 object IconLibrary {
 

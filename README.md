@@ -2,7 +2,7 @@
 
 An Android home screen that arranges itself.
 
-No folders, no dragging. Home is one list, an app to a line, kept in the order you actually
+No folders, nothing to arrange. Home is one list, an app to a line, kept in the order you actually
 open things: restless for the first few days, then still enough to learn with your thumb. Pure
 Kotlin + Compose. **No INTERNET permission**; your launch history never leaves the phone.
 
@@ -101,11 +101,6 @@ one and **Remove** deletes the shortcut, not the browser.
 - **Privacy policy** opens [PRIVACY.md](PRIVACY.md) in your browser.
 
 Work and private profiles are listed alongside personal apps.
-
-## Credits
-
-The built-in icons are from [Material Design Icons](https://pictogrammers.com/library/mdi/) by
-Pictogrammers, Apache License 2.0.
 
 ## Requirements
 

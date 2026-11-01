@@ -467,7 +467,9 @@ private fun Dock(
     // From the column's left to past the screen's edge: the page margin, the safe-area inset, the bleed.
     val toEdgePx = with(density) { (PAGE_PAD + DOCK_BLEED).roundToPx() } +
         WindowInsets.safeDrawing.getLeft(density, LayoutDirection.Ltr)
-    val shape = RoundedCornerShape(topEnd = icon / 2 + DOCK_PAD, bottomEnd = icon / 2 + DOCK_PAD)
+    // Concentric with the icons inside: their corner radius plus the padding around them.
+    val corner = icon * ca.keepitlit.swell.helper.IconCache.cornerFraction + DOCK_PAD
+    val shape = RoundedCornerShape(topEnd = corner, bottomEnd = corner)
     val padPx = with(density) { DOCK_PAD.toPx() }
     val pitchPx = with(density) { (icon + DOCK_GAP).toPx() }
     // Top first, as drawn: the first docked sits lowest, nearest the thumb.

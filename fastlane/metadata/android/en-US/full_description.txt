@@ -2,8 +2,10 @@ Swell is an Android home screen you never arrange. Home is one list, an app to a
 
 Every launch is a vote. Votes decay slowly, so this week matters more than last month, but never enough to yank an app overnight. An app passes the one above it only when it clearly beats it, so the list settles into something your thumb can learn.
 
-• No folders, no dragging, nothing to configure
+• No folders, nothing to arrange
 • The apps you use most head the list; the lines stay still while the apps step through them
+• A dock beside the list for the few apps you always want in reach: hold an app to add it, drag to reorder
+• Rename any app, or give it one of Swell's own icons on a colour you choose
 • Every app, alphabetical and searchable, with a letter rail, one swipe away
 • Least used: review the apps you rarely open and uninstall one or several at once
 • Accent colours, a role-by-role colour table, monochrome icons

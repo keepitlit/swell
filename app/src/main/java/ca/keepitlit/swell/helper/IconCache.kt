@@ -7,6 +7,7 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -128,7 +129,14 @@ object IconCache {
             canvas.translate((sizePx - 24f * scale) / 2f, (sizePx - 24f * scale) / 2f)
             canvas.scale(scale, scale)
             val ink = if (luminance(colour) > 0.55f) 0xFF1B1D21.toInt() else 0xFFFFFFFF.toInt()
-            canvas.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink })
+            // Swell's own glyphs are line drawings: a 2-unit stroke with round ends, never filled.
+            canvas.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = ink
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+                strokeCap = Paint.Cap.ROUND
+                strokeJoin = Paint.Join.ROUND
+            })
             out
         } catch (e: Exception) {
             Log.w(TAG, "glyph draw failed: $e")
@@ -142,6 +150,26 @@ object IconCache {
         (0.2126f * ((c shr 16) and 0xFF) + 0.7152f * ((c shr 8) and 0xFF) + 0.0722f * (c and 0xFF)) / 255f
 
     /** An empty adaptive icon's mask is the system shape, scaled to its bounds. */
+    /**
+     * The system icon shape's corner radius as a fraction of the icon's size: 0.5 for a circle,
+     * less for a rounded square. Read off the mask along its diagonal, where a corner of radius r
+     * leaves r(1 - 1/sqrt 2) of empty space.
+     */
+    val cornerFraction: Float by lazy {
+        try {
+            val size = 240
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8)
+            Canvas(bmp).drawPath(systemMask(size), Paint(Paint.ANTI_ALIAS_FLAG))
+            var d = 0
+            while (d < size / 2 && Color.alpha(bmp.getPixel(d, d)) < 128) d++
+            bmp.recycle()
+            (d / (1f - 1f / kotlin.math.sqrt(2f)) / size).coerceIn(0f, 0.5f)
+        } catch (e: Exception) {
+            Log.w(TAG, "icon mask unreadable: $e")
+            0.5f
+        }
+    }
+
     private fun systemMask(sizePx: Int) =
         AdaptiveIconDrawable(ColorDrawable(0), ColorDrawable(0)).apply { setBounds(0, 0, sizePx, sizePx) }.iconMask
 

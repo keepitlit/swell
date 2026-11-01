@@ -1,0 +1,4 @@
+A dock beside the list for the apps you always want in reach: hold an app to add it, drag to reorder.
+Rename any app, or give it one of Swell's own icons.
+Pin in place is gone: the dock does that job.
+Fewer words on every screen.
