@@ -55,7 +55,8 @@ class Ticker(context: Context) {
         /** A line this far apart or slower ticks at full strength. */
         const val SLOW_MS = 160f
         /** The faintest tick, at the fastest lines. */
-        const val FAINT = 0.15f
-        const val ONE_SHOT_MS = 8L
+        const val FAINT = 0.3f
+        /** Under one swing of a phone's motor (about 6 ms), so it lands as a tap, not a buzz. */
+        const val ONE_SHOT_MS = 3L
     }
 }
