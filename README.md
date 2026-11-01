@@ -9,7 +9,7 @@ Kotlin + Compose. **No INTERNET permission**; your launch history never leaves t
 <p>
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.jpg" width="200" alt="Home: one app per line, most used at the top">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_drawer.jpg" width="200" alt="All apps: alphabetical, with search and a letter rail">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_menu.jpg" width="200" alt="Long-press menu: Open, Pin in place, App info, Uninstall">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_menu.jpg" width="200" alt="Long-press menu: Open, App info, Uninstall">
 </p>
 <p>
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_settings.jpg" width="200" alt="Settings: look and home">
@@ -29,7 +29,7 @@ you opened. The rules come from the design prototype the launcher was ported fro
 2. **An app passes the one above it only by a clear margin.** The margin grows with how high the
    seat is and with how many launches Swell has seen, so close scores don't swap back and forth.
    One launch carries an app as far up as its score allows. An app you have opened is always above
-   one you never have, and a pinned app is never passed.
+   one you never have.
 3. **Every app has a line, in rank order.** The most used app heads the list. A newly installed
    app starts at the bottom. All apps holds the same apps alphabetically, with search.
 
@@ -71,8 +71,10 @@ week or two. Only launches from Swell count.
 |---|---|
 | Open an app | Tap its line. That is the vote. |
 | Move through the list | Drag or fling it: the lines stay still and the apps step through them. |
-| Pin, see app info, uninstall | Long-press a line. **Pin in place** keeps the app's line so nothing can pass it. |
+| See app info, uninstall | Long-press a line. |
 | Keep an app in a fixed place | Long-press it on home or in all apps, then **Add to dock**. The dock sits against the left edge, centred on the screen, and the app leaves the list until you remove it. |
+| Reorder the dock | Long-press a docked app and drag it up or down, or choose **Move up** or **Move down**. |
+| Rename an app or change its icon | Long-press it, then **Edit name and icon**. Type a new name, pick an icon from the built-in library (search it by name) and a tile colour, or go back to **Its own icon**. All apps search still finds it by its old name. |
 | See all apps | Tap **all apps**, or swipe up anywhere on home. Search, or drag the letters on the right. |
 | Open settings | Long-press the clock or **all apps**, or tap **Settings** at the bottom of all apps. |
 | Open your clock app | Tap the clock. |
@@ -99,6 +101,11 @@ one and **Remove** deletes the shortcut, not the browser.
 - **Privacy policy** opens [PRIVACY.md](PRIVACY.md) in your browser.
 
 Work and private profiles are listed alongside personal apps.
+
+## Credits
+
+The built-in icons are from [Material Design Icons](https://pictogrammers.com/library/mdi/) by
+Pictogrammers, Apache License 2.0.
 
 ## Requirements
 

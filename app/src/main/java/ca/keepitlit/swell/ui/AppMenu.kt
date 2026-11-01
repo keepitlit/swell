@@ -35,9 +35,8 @@ import ca.keepitlit.swell.SwellModel
 import ca.keepitlit.swell.data.AppEntry
 
 /**
- * The long-press menu, anchored to the icon that was held. The prototype's long-press simply
- * toggles a pin; on a phone the same gesture is also where app info and uninstall have to live,
- * so it becomes a short menu with Pin at the top.
+ * The long-press menu, anchored to the icon that was held: open, the dock, editing the app's
+ * name and icon, app info and uninstall.
  */
 @Composable
 fun AppMenu(
@@ -46,6 +45,7 @@ fun AppMenu(
     anchor: Offset,
     dockRoom: Int,
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onDismiss: () -> Unit,
@@ -91,17 +91,20 @@ fun AppMenu(
             Rule()
             Item("Open", onOpen)
             val docked = entry.key in model.book.dock
-            // A docked app has no place in the list to hold.
-            if (!docked) Item(
-                if (app?.pinned == true) "Unpin" else "Pin in place",
-                { model.togglePin(entry.key); onDismiss() },
-            )
+            if (docked) {
+                // The dock as drawn, bottom first: "up" is up the screen.
+                val shown = remember(version, dockRoom) { model.book.dock.filter { model.appsByKey.containsKey(it) }.take(dockRoom) }
+                val at = shown.indexOf(entry.key)
+                if (at in 0 until shown.size - 1) Item("Move up", { model.moveDock(entry.key, up = true, shown); onDismiss() })
+                if (at > 0) Item("Move down", { model.moveDock(entry.key, up = false, shown); onDismiss() })
+            }
             when {
                 docked -> Item("Remove from dock", { model.toggleDock(entry.key); onDismiss() })
                 // Why the item is missing: every clear line already holds a docked app.
                 model.book.dock.size >= dockRoom -> Item("Dock is full", {}, muted = true)
                 else -> Item("Add to dock", { model.toggleDock(entry.key); onDismiss() })
             }
+            Item("Edit name and icon", onEdit)
             Item("App info", onAppInfo)
             // A pinned shortcut has no package of its own: "Uninstall" here would remove the app
             // that hosts it: remove a web page from home and lose the whole browser.

@@ -25,6 +25,8 @@ data class AppEntry(
     val label: String,
     /** Non-null for a pinned shortcut; null for a launchable activity. */
     val shortcutId: String? = null,
+    /** A glyph from the icon library chosen in place of the app's own icon; null for its own. */
+    val customIcon: CustomIcon? = null,
 ) {
     val isShortcut: Boolean get() = shortcutId != null
 
@@ -56,6 +58,9 @@ data class AppEntry(
      */
     val id: Long = fnv1a64(key)
 
+    /** What the icon cache files this entry's picture under: a chosen glyph is a different picture. */
+    val iconKey: String = customIcon?.let { "$key#${it.glyph}#${it.colour}" } ?: key
+
     companion object {
         fun fnv1a64(s: String): Long {
             var hash = -0x340d631b7bdddcdbL      // 14695981039346656037
@@ -67,3 +72,6 @@ data class AppEntry(
         }
     }
 }
+
+/** A library glyph ([glyph] is its id in `assets/icons.tsv`) drawn on a tile of [colour]. */
+data class CustomIcon(val glyph: String, val colour: Int)

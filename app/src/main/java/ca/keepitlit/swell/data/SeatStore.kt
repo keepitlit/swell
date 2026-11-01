@@ -36,7 +36,6 @@ class SeatStore(private val context: Context) {
                 book.appOrNew(key).apply {
                     opens = a.optInt("o", 0)
                     ema = a.optDouble("e", 0.0)
-                    pinned = a.optBoolean("p", false)
                     tenure = a.optInt("t", 0)
                     lastDay = a.optInt("l", -1)
                 }
@@ -91,7 +90,7 @@ class SeatStore(private val context: Context) {
         o.put("lastEpochDay", lastEpochDay)
         val apps = JSONObject()
         for (a in book.allApps()) {
-            apps.put(a.key, JSONObject().put("o", a.opens).put("e", a.ema).put("p", a.pinned).put("t", a.tenure).put("l", a.lastDay))
+            apps.put(a.key, JSONObject().put("o", a.opens).put("e", a.ema).put("t", a.tenure).put("l", a.lastDay))
         }
         o.put("apps", apps)
         val seats = JSONArray()

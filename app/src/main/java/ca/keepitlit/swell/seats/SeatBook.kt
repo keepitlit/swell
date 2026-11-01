@@ -19,7 +19,7 @@ import kotlin.math.max
  *    it only when its score beats the occupant's by a gap that grows with the seat's prestige and
  *    with how much the book has seen (the hysteresis slider scales that gap, so close scores do
  *    not swap on every launch). There is no per-launch climb budget: one launch carries an app as
- *    far up as its score allows. A pinned occupant is never passed. (The prototype budgeted 4/2/1
+ *    far up as its score allows. (The prototype budgeted 4/2/1
  *    seats per launch; on a 140-seat book that left a freshly used app crawling up behind apps
  *    nobody had opened, which is not "sorted by use".)
  * 3. **Every app has a seat, in rank order.** Nothing waits in the drawer: the drawer is
@@ -41,7 +41,6 @@ class SeatBook {
         val key: String,
         var opens: Int = 0,
         var ema: Double = 0.0,
-        var pinned: Boolean = false,
         var tenure: Int = 0,
         /** The book [day] of the last launch, or -1 if it predates the record (or never happened). */
         var lastDay: Int = -1,
@@ -160,7 +159,6 @@ class SeatBook {
 
     /** Rule 2: may [me] take [seat] from [above]? */
     internal fun passes(me: App, above: App, seat: Int): Boolean {
-        if (above.pinned) return false
         if (above.opens == 0) return me.opens > 0
         return me.ema >= above.ema + gapNeeded(seat)
     }
@@ -257,19 +255,22 @@ class SeatBook {
         for (k in seats) if (k != null) apps[k]?.let { it.tenure += 1 }
     }
 
-    /** Toggle a pin. Returns the new state, or null if the app has no seat. */
-    fun togglePin(key: String): Boolean? {
-        if (seats.indexOf(key) == -1) return null
-        val a = appOrNew(key)
-        a.pinned = !a.pinned
-        return a.pinned
-    }
-
     /** Dock or undock. Returns true when the app is now docked. */
     fun toggleDock(key: String): Boolean {
         if (dock.remove(key)) return false
         dock.add(key)
         return true
+    }
+
+    /**
+     * Put the docked apps in [order], bottom first. Docked apps missing from [order] (ones the
+     * dock has no room to show) keep their turn after it.
+     */
+    fun orderDock(order: List<String>) {
+        val kept = order.filter { it in dock }
+        val rest = dock.filter { it !in kept }
+        dock.clear()
+        dock.addAll(kept + rest)
     }
 
     /**

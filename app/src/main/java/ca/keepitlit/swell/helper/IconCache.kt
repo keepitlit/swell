@@ -16,6 +16,7 @@ import android.graphics.drawable.Drawable
 import android.os.Process
 import android.util.Log
 import android.util.LruCache
+import androidx.core.graphics.PathParser
 import ca.keepitlit.swell.data.AppEntry
 import kotlin.math.max
 
@@ -80,18 +81,69 @@ object IconCache {
         activityInfo: LauncherActivityInfo? = null,
         shortcutInfo: ShortcutInfo? = null,
     ): Bitmap? {
-        bitmaps.get(app.key)?.let { return it }
+        bitmaps.get(app.iconKey)?.let { return it }
 
-        val drawable =
-            if (app.shortcutId != null) shortcutIcon(context, app, shortcutInfo)
-            else launcherIcon(context, app, activityInfo)
-        if (drawable == null) return null
-        val shaped = drawable.shaped(sizePx) ?: return null
-        val bitmap = if (app.shortcutId == null) badged(context, app, shaped, sizePx) else shaped
-        bitmaps.put(app.key, bitmap)
-        colours[app.key] = dominantColourOf(bitmap)
+        val custom = app.customIcon
+        val shaped = if (custom != null) {
+            val glyph = IconLibrary.find(context, custom.glyph)
+            if (glyph != null) glyph(glyph.path, custom.colour, sizePx) else null
+        } else null
+        val own = shaped ?: run {
+            val drawable =
+                if (app.shortcutId != null) shortcutIcon(context, app, shortcutInfo)
+                else launcherIcon(context, app, activityInfo)
+            drawable?.shaped(sizePx)
+        } ?: return null
+        // A shortcut's own icon already carries its host's badge; a glyph carries none.
+        val bitmap = if (app.shortcutId == null || custom != null) badged(context, app, own, sizePx) else own
+        bitmaps.put(app.iconKey, bitmap)
+        colours[app.iconKey] = dominantColourOf(bitmap)
         return bitmap
     }
+
+    /** A library glyph alone, for the picker: no app, no badge. Cached like an app's icon. */
+    fun loadGlyph(context: Context, id: String, colour: Int, sizePx: Int): Bitmap? {
+        val key = "glyph#$id#$colour#$sizePx"
+        bitmaps.get(key)?.let { return it }
+        val glyph = IconLibrary.find(context, id) ?: return null
+        return glyph(glyph.path, colour, sizePx)?.also { bitmaps.put(key, it) }
+    }
+
+    fun peekGlyph(id: String, colour: Int, sizePx: Int): Bitmap? = bitmaps.get("glyph#$id#$colour#$sizePx")
+
+    /**
+     * [pathData] (a 24-unit SVG path) in a light or dark ink, whichever reads on [colour], centred
+     * on a tile of [colour] in the system icon shape.
+     */
+    private fun glyph(pathData: String, colour: Int, sizePx: Int): Bitmap? {
+        if (sizePx <= 0) return null
+        return try {
+            val path = PathParser.createPathFromPathData(pathData)
+            val out = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            canvas.clipPath(systemMask(sizePx))
+            canvas.drawColor(colour)
+            // The 24-unit box holds about 2 units of padding, so the drawn glyph spans about half the tile.
+            val scale = sizePx * GLYPH_BOX / 24f
+            canvas.translate((sizePx - 24f * scale) / 2f, (sizePx - 24f * scale) / 2f)
+            canvas.scale(scale, scale)
+            val ink = if (luminance(colour) > 0.55f) 0xFF1B1D21.toInt() else 0xFFFFFFFF.toInt()
+            canvas.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink })
+            out
+        } catch (e: Exception) {
+            Log.w(TAG, "glyph draw failed: $e")
+            null
+        }
+    }
+
+    private const val GLYPH_BOX = 0.62f
+
+    private fun luminance(c: Int): Float =
+        (0.2126f * ((c shr 16) and 0xFF) + 0.7152f * ((c shr 8) and 0xFF) + 0.0722f * (c and 0xFF)) / 255f
+
+    /** An empty adaptive icon's mask is the system shape, scaled to its bounds. */
+    private fun systemMask(sizePx: Int) =
+        AdaptiveIconDrawable(ColorDrawable(0), ColorDrawable(0)).apply { setBounds(0, 0, sizePx, sizePx) }.iconMask
 
     /** Drop rasterised icons on a package change or a density change. Colours survive. */
     fun clearBitmaps() = bitmaps.evictAll()
@@ -183,11 +235,7 @@ object IconCache {
         return try {
             val out = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(out)
-            // An empty adaptive icon's mask is the system shape, scaled to its bounds.
-            val mask = AdaptiveIconDrawable(ColorDrawable(0), ColorDrawable(0))
-                .apply { setBounds(0, 0, sizePx, sizePx) }
-                .iconMask
-            canvas.clipPath(mask)
+            canvas.clipPath(systemMask(sizePx))
             fit.fill?.let { canvas.drawColor(it) }
             val target = if (fit.tile) sizePx.toFloat() else sizePx * IconShape.GLYPH_SCALE
             val matrix = Matrix().apply {

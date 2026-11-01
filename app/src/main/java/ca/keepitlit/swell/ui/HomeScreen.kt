@@ -64,6 +64,18 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.findRootCoordinates
@@ -103,6 +115,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
     var drawerOpen by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Pair<AppEntry, Offset>?>(null) }
     var settingsOpen by remember { mutableStateOf(false) }
+    var editFor by remember { mutableStateOf<String?>(null) }
 
     // Page 0 is the widget panel; page 1 is the ranked list.
     val pageCount = 2
@@ -113,15 +126,17 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
         drawerOpen = false
         menuFor = null
         settingsOpen = false
+        editFor = null
         if (homeSignal > 0) {
             stepState.first = 0
             pager.animateScrollToPage(1)
         }
     }
     LaunchedEffect(openDrawerSignal) { if (openDrawerSignal > 0) drawerOpen = true }
-    BackHandler(enabled = drawerOpen || menuFor != null || settingsOpen) {
+    BackHandler(enabled = drawerOpen || menuFor != null || settingsOpen || editFor != null) {
         when {
             menuFor != null -> menuFor = null
+            editFor != null -> editFor = null
             settingsOpen -> settingsOpen = false
             else -> drawerOpen = false
         }
@@ -178,6 +193,8 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                             modifier = Modifier.fillMaxSize().clipToBounds().padding(horizontal = PAGE_PAD),
                             onOpen = open,
                             onHold = { entry, at -> menuFor = entry to at },
+                            // Dragging a held dock icon takes it out of the menu and moves it.
+                            onDrag = { menuFor = null },
                         )
                     }
                 }
@@ -202,6 +219,7 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
                     anchor = at,
                     dockRoom = stepState.dockRoom,
                     onOpen = { open(entry, null) },
+                    onEdit = { menuFor = null; editFor = entry.key },
                     onAppInfo = { menuFor = null; AppLaunch.appInfo(context, entry) },
                     onUninstall = {
                         menuFor = null
@@ -219,6 +237,8 @@ fun SwellApp(model: SwellModel, widgets: Widgets, homeSignal: Int, openDrawerSig
             }
 
             SettingsPage(open = settingsOpen, model = model, onClose = { settingsOpen = false })
+
+            EditAppPage(key = editFor, model = model, onClose = { editFor = null })
 
             Toast(model.toast, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
@@ -319,6 +339,7 @@ private fun SeatSteps(
     modifier: Modifier,
     onOpen: (AppEntry, Rect?) -> Unit,
     onHold: (AppEntry, Offset) -> Unit,
+    onDrag: () -> Unit,
 ) {
     val look = LocalLook.current
     val keys = listKeys(model)
@@ -408,7 +429,7 @@ private fun SeatSteps(
                 }
             }
         }
-        if (gutter > 0.dp) Dock(model, room = dockRoom, column = { placed }, onOpen = onOpen, onHold = onHold)
+        if (gutter > 0.dp) Dock(model, room = dockRoom, column = { placed }, onOpen = onOpen, onHold = onHold, onDrag = onDrag)
     }
 }
 
@@ -424,8 +445,11 @@ private val DOCK_BLEED = 24.dp
  * The apps kept in a fixed place: one column against the screen's left edge, centred on the
  * screen's height and kept inside the list's [column]. Its capsule runs off the edge, so only the
  * rounded right end shows. Holds up to [room] apps.
+ *
+ * Tap opens; hold opens the app menu; hold and drag moves the app up or down the dock. One
+ * gesture reader on the whole column does all three, because it does not move while an icon
+ * does: a reader on the icon itself would see its own reordering as finger travel.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Dock(
     model: SwellModel,
@@ -433,6 +457,7 @@ private fun Dock(
     column: () -> LayoutCoordinates?,
     onOpen: (AppEntry, Rect?) -> Unit,
     onHold: (AppEntry, Offset) -> Unit,
+    onDrag: () -> Unit,
 ) {
     val look = LocalLook.current
     val keys = dockKeys(model).take(room)
@@ -443,6 +468,21 @@ private fun Dock(
     val toEdgePx = with(density) { (PAGE_PAD + DOCK_BLEED).roundToPx() } +
         WindowInsets.safeDrawing.getLeft(density, LayoutDirection.Ltr)
     val shape = RoundedCornerShape(topEnd = icon / 2 + DOCK_PAD, bottomEnd = icon / 2 + DOCK_PAD)
+    val padPx = with(density) { DOCK_PAD.toPx() }
+    val pitchPx = with(density) { (icon + DOCK_GAP).toPx() }
+    // Top first, as drawn: the first docked sits lowest, nearest the thumb.
+    val drawn = keys.asReversed()
+    // While a drag is under way: the order as it stands, which icon is moving, and how far it
+    // sits from its current place.
+    var order by remember { mutableStateOf<List<String>?>(null) }
+    var moving by remember { mutableStateOf<String?>(null) }
+    var lift by remember { mutableStateOf(0f) }
+    val shown = order ?: drawn
+    val bounds = remember { HashMap<String, LayoutCoordinates>() }
+    fun rectOf(k: String): Rect? = bounds[k]?.takeIf { it.isAttached }?.boundsInWindow()
+        ?.let { Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) }
+    val latestDrawn by androidx.compose.runtime.rememberUpdatedState(drawn)
+
     Column(
         Modifier
             .layout { measurable, constraints ->
@@ -462,29 +502,86 @@ private fun Dock(
             .clip(shape)
             .background(look.paper.copy(alpha = 0.10f))
             .border(1.dp, look.rule2, shape)
+            .pointerInput(pitchPx, padPx) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val list = latestDrawn
+                    val at = ((down.position.y - padPx) / pitchPx).toInt().coerceIn(0, list.size - 1)
+                    val k = list[at]
+                    val entry = model.appsByKey[k] ?: return@awaitEachGesture
+                    val held = awaitLongPressOrCancellation(down.id)
+                    if (held == null) {
+                        // Lifted before the hold: a tap. Moved instead: not ours (the pager's, say).
+                        val up = currentEvent.changes.firstOrNull { it.id == down.id }
+                        if (up != null && up.changedToUp() && !up.isConsumed) {
+                            up.consume()
+                            onOpen(entry, rectOf(k))
+                        }
+                        return@awaitEachGesture
+                    }
+                    onHold(entry, bounds[k]?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero)
+                    var travel = 0f
+                    var dragging = false
+                    var slot = at
+                    var now = list
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val c = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (c.changedToUpIgnoreConsumed()) { c.consume(); break }
+                        val dy = c.positionChange().y
+                        c.consume()
+                        travel += dy
+                        if (!dragging) {
+                            if (kotlin.math.abs(travel) < viewConfiguration.touchSlop) continue
+                            dragging = true
+                            onDrag()
+                            moving = k
+                            order = now
+                            lift = travel
+                            continue
+                        }
+                        lift += dy
+                        // Past half a place, trade places with the neighbour; the icon stays under the finger.
+                        while (lift > pitchPx / 2 && slot < now.size - 1) {
+                            now = now.toMutableList().apply { this[slot] = this[slot + 1]; this[slot + 1] = k }
+                            slot++; lift -= pitchPx
+                        }
+                        while (lift < -pitchPx / 2 && slot > 0) {
+                            now = now.toMutableList().apply { this[slot] = this[slot - 1]; this[slot - 1] = k }
+                            slot--; lift += pitchPx
+                        }
+                        order = now
+                    }
+                    if (dragging && now != list) model.orderDock(now.asReversed())
+                    order = null
+                    moving = null
+                    lift = 0f
+                }
+            }
             .padding(start = DOCK_BLEED + 10.dp, end = DOCK_PAD, top = DOCK_PAD, bottom = DOCK_PAD),
         verticalArrangement = Arrangement.spacedBy(DOCK_GAP),
     ) {
-        // First docked sits lowest, nearest the thumb.
-        for (k in keys.asReversed()) {
+        for (k in shown) {
             val entry = model.appsByKey[k] ?: continue
             key(k) {
-                var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                val lifted = moving == k
                 Box(
                     Modifier
-                        .onPlaced { coords = it }
+                        .onPlaced { bounds[k] = it }
+                        .zIndex(if (lifted) 1f else 0f)
+                        .graphicsLayer {
+                            if (lifted) {
+                                translationY = lift
+                                scaleX = 1.12f
+                                scaleY = 1.12f
+                            }
+                        }
                         .size(icon)
-                        .clip(RoundedCornerShape(percent = 30))
-                        .combinedClickable(
-                            onClick = {
-                                val b = coords?.takeIf { it.isAttached }?.boundsInWindow()
-                                onOpen(entry, b?.let { Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) })
-                            },
-                            onLongClick = {
-                                val c = coords?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero
-                                onHold(entry, c)
-                            },
-                        ),
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = entry.label
+                            onClick { onOpen(entry, rectOf(k)); true }
+                            onLongClick { onHold(entry, bounds[k]?.takeIf { it.isAttached }?.boundsInWindow()?.center ?: Offset.Zero); true }
+                        },
                 ) {
                     AppIcon(entry, model.repo, icon, look.iconsMono, look.paper)
                 }
@@ -548,16 +645,6 @@ private fun SeatLine(
                 contentAlignment = Alignment.Center,
             ) {
                 AppIcon(entry, model.repo, iconSize, look.iconsMono, look.paper)
-                if (book.app(k)?.pinned == true) {
-                    Box(
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .size(10.dp)
-                            .background(look.shell, CircleShape)
-                            .padding(2.dp)
-                            .background(look.accent2, CircleShape),
-                    )
-                }
             }
         }
         Text(

@@ -88,7 +88,8 @@ fun Drawer(
     // Always alphabetical: model.apps arrives sorted. Only the home screens are ranked.
     val rows = remember(model.apps, query) {
         val q = query.trim().lowercase()
-        model.apps.filter { q.isEmpty() || it.label.lowercase().contains(q) }
+        // A renamed app is still found by the name it came with.
+        model.apps.filter { q.isEmpty() || it.label.lowercase().contains(q) || model.own(it.key)?.label?.lowercase()?.contains(q) == true }
     }
 
     Box(Modifier.fillMaxSize()) {

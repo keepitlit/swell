@@ -9,8 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import ca.keepitlit.swell.data.AppEdit
+import ca.keepitlit.swell.data.AppEdits
 import ca.keepitlit.swell.data.AppEntry
 import ca.keepitlit.swell.data.AppRepository
+import ca.keepitlit.swell.data.CustomIcon
 import ca.keepitlit.swell.data.SeatStore
 import ca.keepitlit.swell.helper.AppLaunch
 import ca.keepitlit.swell.seats.SeatBook
@@ -30,6 +33,7 @@ class SwellModel(private val context: Context) {
     val repo = AppRepository(context)
     private val store = SeatStore(context)
     private val appearancePrefs = AppearancePrefs(context)
+    private val editStore = AppEdits(context)
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
@@ -42,6 +46,13 @@ class SwellModel(private val context: Context) {
         private set
 
     var appsByKey: Map<String, AppEntry> = emptyMap()
+        private set
+
+    /** Each app as the phone names and draws it, before [edits]. */
+    private var ownApps: Map<String, AppEntry> = emptyMap()
+
+    /** The names and icons people chose, by key. */
+    var edits by mutableStateOf(editStore.load())
         private set
 
     /** Bumped on every change to the book. Composables read it to subscribe. */
@@ -68,12 +79,44 @@ class SwellModel(private val context: Context) {
     }
 
     private fun onApps(list: List<AppEntry>) {
-        apps = list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
-        appsByKey = list.associateBy { it.key }
+        ownApps = list.associateBy { it.key }
+        applyEdits()
         // Every installed app has a seat; the drawer is only a different order of the same list.
         val pruned = book.prune(appsByKey.keys)
         val seated = book.seatAll(apps.map { it.key })
         if (pruned || seated) save()
+        version++
+    }
+
+    /** Rebuild [apps] from the phone's list with each chosen name and icon in place. */
+    private fun applyEdits() {
+        val list = ownApps.values.map { e ->
+            val edit = edits[e.key] ?: return@map e
+            e.copy(label = edit.name ?: e.label, customIcon = edit.icon)
+        }
+        apps = list.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+        appsByKey = list.associateBy { it.key }
+    }
+
+    /** The app as the phone has it, before any edit: its own name and icon. */
+    fun own(key: String): AppEntry? = ownApps[key]
+
+    /** A blank or unchanged [name] goes back to the app's own. */
+    fun rename(key: String, name: String) {
+        val own = ownApps[key]?.label
+        val n = name.trim().takeIf { it.isNotEmpty() && it != own }
+        edit(key) { it.copy(name = n) }
+    }
+
+    /** A null [icon] goes back to the app's own. */
+    fun setIcon(key: String, icon: CustomIcon?) = edit(key) { it.copy(icon = icon) }
+
+    private fun edit(key: String, change: (AppEdit) -> AppEdit) {
+        val next = change(edits[key] ?: AppEdit())
+        edits = if (next.isEmpty) edits - key else edits + (key to next)
+        val json = editStore.serialize(edits)
+        io.execute { editStore.write(json) }
+        applyEdits()
         version++
     }
 
@@ -134,19 +177,23 @@ class SwellModel(private val context: Context) {
         }
     }
 
-    fun togglePin(key: String) {
-        val label = label(key)
-        when (book.togglePin(key)) {
-            null -> showToast("Pin from the page: earn a seat first")
-            true -> showToast("$label is pinned")
-            false -> showToast("$label can move again")
-        }
+    fun toggleDock(key: String) {
+        showToast(if (book.toggleDock(key)) "${label(key)} is in the dock" else "${label(key)} is back in the list")
         version++
         save()
     }
 
-    fun toggleDock(key: String) {
-        showToast(if (book.toggleDock(key)) "${label(key)} is in the dock" else "${label(key)} is back in the list")
+    /** Swap a docked app with its neighbour above ([up]) or below. [shown] is the dock as drawn, bottom first. */
+    fun moveDock(key: String, up: Boolean, shown: List<String>) {
+        val i = shown.indexOf(key)
+        val j = if (up) i + 1 else i - 1
+        if (i < 0 || j !in shown.indices) return
+        orderDock(shown.toMutableList().apply { this[i] = this[j]; this[j] = key })
+    }
+
+    /** [order] is the dock as drawn, bottom first. */
+    fun orderDock(order: List<String>) {
+        book.orderDock(order)
         version++
         save()
     }

@@ -40,11 +40,28 @@ fun AppIcon(
 ) {
     val context = LocalContext.current
     val px = with(LocalDensity.current) { size.roundToPx() }
-    var bitmap by remember(entry.key) { mutableStateOf(IconCache.peek(entry.key)) }
-    LaunchedEffect(entry.key) {
+    var bitmap by remember(entry.iconKey) { mutableStateOf(IconCache.peek(entry.iconKey)) }
+    LaunchedEffect(entry.iconKey) {
         if (bitmap == null) {
             bitmap = withContext(Dispatchers.IO) { IconCache.load(context, entry, px, repo.activityInfo(entry), repo.shortcutInfo(entry)) }
         }
+    }
+    val filter = if (mono) remember(ink) { monoFilter(ink) } else null
+    Box(modifier.size(size)) {
+        bitmap?.let {
+            Image(bitmap = it.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), colorFilter = filter)
+        }
+    }
+}
+
+/** A library glyph on a tile of [colour], as the icon picker shows it. */
+@Composable
+fun GlyphIcon(id: String, colour: Int, size: Dp, mono: Boolean, ink: Color, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val px = with(LocalDensity.current) { size.roundToPx() }
+    var bitmap by remember(id, colour, px) { mutableStateOf(IconCache.peekGlyph(id, colour, px)) }
+    LaunchedEffect(id, colour, px) {
+        if (bitmap == null) bitmap = withContext(Dispatchers.IO) { IconCache.loadGlyph(context, id, colour, px) }
     }
     val filter = if (mono) remember(ink) { monoFilter(ink) } else null
     Box(modifier.size(size)) {

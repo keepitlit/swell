@@ -77,20 +77,13 @@ class SeatBookTest {
     }
 
     @Test
-    fun `a pinned occupant is never passed`() {
+    fun `orderDock reorders what is shown and keeps the rest after it`() {
         val b = book()
-        b.launch("a")
-        b.launch("b")
-        assertEquals(true, b.togglePin("a"))
-        repeat(50) { b.launch("b") }
-        assertEquals(0, b.seatOf("a"))
-        assertEquals(1, b.seatOf("b"))
-    }
-
-    @Test
-    fun `pinning an unseated app is refused`() {
-        val b = book()
-        assertNull(b.togglePin("nobody"))
+        for (k in listOf("a", "b", "c", "d")) b.toggleDock(k)
+        b.orderDock(listOf("c", "a", "b"))
+        assertEquals(listOf("c", "a", "b", "d"), b.dock)
+        b.orderDock(listOf("d", "gone"))
+        assertEquals(listOf("d", "c", "a", "b"), b.dock)
     }
 
     @Test
